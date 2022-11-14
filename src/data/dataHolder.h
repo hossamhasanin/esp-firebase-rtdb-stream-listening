@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include "dataItem.h"
 
 #define DATA_FIELDS_COUNT 2
 
@@ -8,7 +9,7 @@ class DataHolder {
         uint8_t _data[DATA_FIELDS_COUNT];
     
     public :
-        void parseDataFromKeyValue(const char* key, const char* value);
+        DataItem parseDataFromKeyValue(const char* key, const char* value);
 };
 
 // create enum for the data fields

@@ -1,5 +1,6 @@
 #include <Firebase_ESP_Client.h>
 #include "freertos/FreeRTOS.h"
+#include "data/dataItem.h"
 
 /* 2. Define the API Key */
 #define API_KEY "API_KEY"
@@ -12,12 +13,13 @@
 
 
 
+
 class FirebaseListener{
 
     
     public:
-        typedef void (*DataParsingCallback)(const char* , const char*);
-        typedef void (*DataChangedCallback)();
+        typedef DataItem (*DataParsingCallback)(const char* , const char*);
+        typedef void (*DataChangedCallback)(DataItem);
 
     private:
         FirebaseConfig config;
@@ -34,7 +36,7 @@ class FirebaseListener{
         static void onDataChangedEvent(DataChangedCallback callback);
 
     public:
-        void init();
+        void init(int maxQueueSize);
         void start();
         void stop();
         void registerDataChangeTask(DataChangedCallback callback);

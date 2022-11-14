@@ -8,14 +8,13 @@ FirebaseListener firebaseListener;
 
 void setup() {
 
-  firebaseListener.init();
+  firebaseListener.init(DATA_FIELDS_COUNT);
 
-  FirebaseListener::setDataParsingCallback([](const char* key, const char* value) {
-    data.parseDataFromKeyValue(key, value);
+  FirebaseListener::setDataParsingCallback([](const char* key, const char* value) -> DataItem {
+    return data.parseDataFromKeyValue(key, value);
   });
-
-  firebaseListener.registerDataChangeTask([]() {
-    Serial.println("Data changed");
+  firebaseListener.registerDataChangeTask([](DataItem dataItem) {
+    Serial.printf("Data changed: key: %d, value: %d", dataItem.key, (int) dataItem.value);
   });
   firebaseListener.start();
 

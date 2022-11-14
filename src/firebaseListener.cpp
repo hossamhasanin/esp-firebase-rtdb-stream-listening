@@ -4,12 +4,14 @@ QueueHandle_t FirebaseListener::queueFlagChangedData = NULL;
 FirebaseData FirebaseListener::stream;
 FirebaseListener::DataParsingCallback FirebaseListener::dataParsingCallback = NULL;
 
-void FirebaseListener::init() {
+void FirebaseListener::init(int maxQueueSize) {
   
 //   /* Assign the api key (required) */
 //   config.api_key = API_KEY;
 
   /* Assign the RTDB URL (required) */
+
+
   config.database_url = DATABASE_URL;
 
   config.signer.test_mode = true;
@@ -19,7 +21,7 @@ void FirebaseListener::init() {
     /* Initialize the library with the Firebase authen and config */
   Firebase.begin(&config, &auth);
 
-  queueFlagChangedData = xQueueCreate(1, sizeof(bool));
+  queueFlagChangedData = xQueueCreate(maxQueueSize, sizeof(DataItem));
 }
 
 
@@ -62,18 +64,21 @@ void FirebaseListener::streamCallback(FirebaseStream data)
         Serial.println();
         size_t len = json->iteratorBegin();
         FirebaseJson::IteratorValue value;
+        
         for (size_t i = 0; i < len; i++)
         {
             value = json->valueAt(i);
             Serial_Printf((const char *)FPSTR("%d, Type: %s, Name: %s, Value: %s\n"), i, value.type == FirebaseJson::JSON_OBJECT ? (const char *)FPSTR("object") : (const char *)FPSTR("array"), value.key.c_str(), value.value.c_str());
-            dataParsingCallback(value.key.c_str(), value.value.c_str());
+            DataItem item = dataParsingCallback(value.key.c_str(), value.value.c_str());
+            
+            if (xQueueSend(queueFlagChangedData, (void *) &item, (TickType_t) 2) != pdPASS){
+              Serial.println((const char *)FPSTR("stream queue full"));
+        }
         }
         json->iteratorEnd();
         json->clear();
 
-        if (xQueueSend(queueFlagChangedData, (void *) true, (TickType_t) 2) != pdPASS){
-          Serial.println((const char *)FPSTR("stream queue full"));
-        }
+        
   } else {
     Serial.println((const char *)FPSTR("Data type is not JSON"));
   }
@@ -90,12 +95,12 @@ void FirebaseListener::streamCallback(FirebaseStream data)
 }
 
 void FirebaseListener::onDataChangedEvent(DataChangedCallback callback) {
-  bool isDataChanged = false;
-  if (xQueueReceive(queueFlagChangedData, &isDataChanged, (TickType_t) 2) == pdPASS){
-    if (isDataChanged){
+  DataItem dataChanged;
+  if (xQueueReceive(queueFlagChangedData, &dataChanged, (TickType_t) 2) == pdPASS){
+    if (dataChanged.key != NULL) {
       // Do something here
       Serial.println((const char *)FPSTR("Some data has been changed"));
-      callback();
+      callback(dataChanged);
     }
   }
 }
