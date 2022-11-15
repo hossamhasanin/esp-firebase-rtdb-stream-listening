@@ -131,3 +131,21 @@ void FirebaseListener::stop() {
   vTaskDelete(_dataChangeHandle);
   xQueueReset(queueFlagChangedData);
 }
+
+void FirebaseListener::storeInt(const char* key, int value) {
+  // concatinate DATA_PATH , "/" and the key
+  char path[strlen(DATA_PATH) + strlen(key) + 2];
+  strcpy(path, DATA_PATH);
+  strcat(path, "/");
+  strcat(path, key);
+  Firebase.RTDB.setInt(&fbdo, path, value);
+}
+
+void FirebaseListener::storeBool(const char* key, bool value) {
+  // concatinate DATA_PATH , "/" and the key
+  char path[strlen(DATA_PATH) + strlen(key) + 2];
+  strcpy(path, DATA_PATH);
+  strcat(path, "/");
+  strcat(path, key);
+  Firebase.RTDB.setBool(&fbdo, path, value);
+}

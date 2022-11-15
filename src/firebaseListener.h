@@ -8,7 +8,7 @@
 /* 3. Define the RTDB URL */
 #define DATABASE_URL "URL" //<databaseName>.firebaseio.com or <databaseName>.<region>.firebasedatabase.app
 
-#define DATA_PATH "/test"
+#define DATA_PATH "/states"
 
 
 
@@ -40,6 +40,9 @@ class FirebaseListener{
         void start();
         void stop();
         void registerDataChangeTask(DataChangedCallback callback);
+
+        void storeInt(const char* key, int value);
+        void storeBool(const char* key, bool value);
         
         static void setDataParsingCallback(DataParsingCallback callback);
     

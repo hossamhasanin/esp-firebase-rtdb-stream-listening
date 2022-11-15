@@ -8,21 +8,34 @@ DataItem DataHolder::parseDataFromKeyValue(const char* key, const char* value) {
     int keyInt = atoi(key);
     DataItem changedDataItem;
     
-    uint8_t valueByte = (uint8_t)atoi(value);
+    uint8_t valueByte;
     // compare the key with 0
-    if (keyInt == temprature && _data[temprature] != valueByte) {
-        // convert the value to uint8_t
-        _data[temprature] = valueByte;
-        changedDataItem.key = temprature;
-        changedDataItem.value = _data[temprature];
-    } else if (keyInt == switch1 && _data[switch1] != valueByte) {
-        // convert the value to uint8_t
-        _data[switch1] = valueByte;
-        changedDataItem.key = switch1;
-        changedDataItem.value = _data[switch1];
+    if (keyInt == temprature) {
+        // parse the value to int
+        valueByte = (uint8_t)atoi(value);
+
+        setIfChanged(temprature, valueByte, &changedDataItem);
+    } else if (keyInt == switch1) {
+        // parse the value to bool
+        if (strcmp(value, "true") == 0) {
+            valueByte = true;
+        } else {
+            valueByte = false;
+        }
+
+        setIfChanged(switch1, valueByte, &changedDataItem);
     } else {
         Serial.println("Unknown key "+String(key));
     }
 
     return changedDataItem;
+}
+
+void DataHolder::setIfChanged(int key , uint8_t valueByte , DataItem* changedDataItem) {
+    
+    if (valueByte == _data[key]) return;
+
+    _data[key] = valueByte;
+    changedDataItem->key = key;
+    changedDataItem->value = _data[key];
 }

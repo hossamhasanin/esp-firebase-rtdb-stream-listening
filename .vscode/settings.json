@@ -1,6 +1,11 @@
 {
     "files.associations": {
         "atomic": "cpp",
-        "stack": "cpp"
+        "stack": "cpp",
+        "fstream": "cpp",
+        "istream": "cpp",
+        "ostream": "cpp",
+        "sstream": "cpp",
+        "functional": "cpp"
     }
 }

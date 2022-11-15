@@ -7,6 +7,8 @@
 class DataHolder {
     private :
         uint8_t _data[DATA_FIELDS_COUNT];
+
+        void setIfChanged(int key , uint8_t valueByte , DataItem* changedDataItem);
     
     public :
         DataItem parseDataFromKeyValue(const char* key, const char* value);
