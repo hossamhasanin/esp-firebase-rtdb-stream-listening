@@ -32,7 +32,11 @@ std::string NvsManager::getStringVal(nvs_handle_t nvsHandle , const char* key){
     }
 
     char value[required_size];
-    nvs_get_str(nvsHandle, key, value, &required_size);
+    err = nvs_get_str(nvsHandle, key, value, &required_size);
+    if (err != ESP_OK) {
+        Serial.println("Error (" + String(esp_err_to_name(err)) + ") reading ssid!");
+        return "";
+    }
     
     return value;
 }
