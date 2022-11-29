@@ -100,11 +100,11 @@ void FirebaseListener::streamCallback(FirebaseStream data)
 void FirebaseListener::onDataChangedEvent(DataChangedCallback callback) {
   DataItem dataChanged;
   if (xQueueReceive(queueFlagChangedData, &dataChanged, (TickType_t) 2) == pdPASS){
-    if (dataChanged.key != NULL) {
+    // if (dataChanged.key != NULL) {
       // Do something here
       Serial.println((const char *)FPSTR("Some data has been changed"));
       callback(dataChanged);
-    }
+    // }
   }
 }
 
