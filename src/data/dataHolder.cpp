@@ -39,3 +39,7 @@ void DataHolder::setIfChanged(int key , uint8_t valueByte , DataItem* changedDat
     changedDataItem->key = key;
     changedDataItem->value = _data[key];
 }
+
+uint8_t DataHolder::get(int key) {
+    return _data[key];
+}

@@ -10,16 +10,21 @@
 DataHolder data;
 FirebaseListener firebaseListener;
 
-void ifFirstTimeUp(){
-    nvs_handle_t nvsHandle = NvsManager::openStorage();
-    if(NvsManager::getU8(nvsHandle , "isFirstTime") == 0){
-        NvsManager::storeU8(nvsHandle , "isFirstTime" , true);
+// void ifFirstTimeUp(){
+//     nvs_handle_t nvsHandle = NvsManager::openStorage();
+//     if(NvsManager::getU8(nvsHandle , "isFirstTime") == 0){
+//         NvsManager::storeU8(nvsHandle , "isFirstTime" , true);
         
-        // set the default values to firebase
-        firebaseListener.storeInt(String(temprature).c_str() , 0);
-        firebaseListener.storeBool(String(switch1).c_str() , false);
-    }
-    NvsManager::closeStorage(nvsHandle);
+//         // set the default values to firebase
+//         firebaseListener.storeInt(String(temprature).c_str() , 0);
+//         firebaseListener.storeBool(String(switch1).c_str() , false);
+//     }
+//     NvsManager::closeStorage(nvsHandle);
+// }
+
+void sendDevicesStateToFirebase(){
+    firebaseListener.storeInt(String(temprature).c_str() , data.get(temprature));
+    firebaseListener.storeBool(String(switch1).c_str() , data.get(switch1));
 }
 
 void setup() {
@@ -30,6 +35,8 @@ void setup() {
       Serial.println("Connected to wifi");
         
       firebaseListener.start();
+
+      sendDevicesStateToFirebase();
     }, [](){
         Serial.println("Lost wifi connection");
         firebaseListener.stop();

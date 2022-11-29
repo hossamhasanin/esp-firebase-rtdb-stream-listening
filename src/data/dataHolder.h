@@ -12,6 +12,8 @@ class DataHolder {
     
     public :
         DataItem parseDataFromKeyValue(const char* key, const char* value);
+        uint8_t get(int key);
+
 };
 
 // create enum for the data fields
