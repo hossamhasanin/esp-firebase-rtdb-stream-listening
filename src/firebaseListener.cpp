@@ -16,16 +16,19 @@ void FirebaseListener::init(int maxQueueSize) {
 
   config.signer.test_mode = true;
 
-  Firebase.reconnectWiFi(true);
+  // Firebase.reconnectWiFi(true);
 
-    /* Initialize the library with the Firebase authen and config */
-  Firebase.begin(&config, &auth);
+    
 
   queueFlagChangedData = xQueueCreate(maxQueueSize, sizeof(DataItem));
 }
 
 
 void FirebaseListener::start() {
+
+  /* Initialize the library with the Firebase authen and config */
+  Firebase.begin(&config, &auth);
+
   if (!Firebase.RTDB.beginStream(&stream, DATA_PATH)) 
     Serial.printf("sream begin error, %s\n\n", stream.errorReason().c_str());
   
@@ -128,8 +131,8 @@ void FirebaseListener::setDataParsingCallback(DataParsingCallback callback) {
 void FirebaseListener::stop() {
   Firebase.RTDB.endStream(&stream);
   // delete task
-  vTaskDelete(_dataChangeHandle);
-  xQueueReset(queueFlagChangedData);
+  // vTaskDelete(_dataChangeHandle);
+  // xQueueReset(queueFlagChangedData);
 }
 
 void FirebaseListener::storeInt(const char* key, int value) {

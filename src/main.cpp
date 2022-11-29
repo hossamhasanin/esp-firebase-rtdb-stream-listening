@@ -4,6 +4,9 @@
 #include "data/dataHolder.h"
 #include "data/nvsManager/nvsManager.h"
 
+#include "webServer/webServer.h"
+#include "wifiManager/wifiManager.h"
+
 DataHolder data;
 FirebaseListener firebaseListener;
 
@@ -23,17 +26,28 @@ void setup() {
 
   NvsManager::initNvsMemory();
 
-  ifFirstTimeUp();
+  WiFiManager::setupWifi([](){
+      Serial.println("Connected to wifi");
+        
+      firebaseListener.start();
+    }, [](){
+        Serial.println("Lost wifi connection");
+        firebaseListener.stop();
+    }
+  );
+
+  WebServer::startWebServer(WiFiManager::startStationMode);
+
 
   firebaseListener.init(DATA_FIELDS_COUNT);
-
+  
   FirebaseListener::setDataParsingCallback([](const char* key, const char* value) -> DataItem {
     return data.parseDataFromKeyValue(key, value);
   });
+
   firebaseListener.registerDataChangeTask([](DataItem dataItem) {
     Serial.printf("Data changed: key: %d, value: %d", dataItem.key, (int) dataItem.value);
   });
-  firebaseListener.start();
 
   vTaskDelete(NULL);
 }
