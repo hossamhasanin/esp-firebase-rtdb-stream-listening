@@ -107,5 +107,7 @@ void WebServer::startWebServer(OnCredintialsSet callback){
 }
 
 esp_err_t WebServer::stopWebServer(){
+    httpd_unregister_uri(server, "/check_connected");
+    httpd_unregister_uri(server, "/connect");
     return httpd_stop(server);
 }

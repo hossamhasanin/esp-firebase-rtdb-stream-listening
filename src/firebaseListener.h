@@ -6,7 +6,7 @@
 #define API_KEY "API_KEY"
 
 /* 3. Define the RTDB URL */
-#define DATABASE_URL "URL" //<databaseName>.firebaseio.com or <databaseName>.<region>.firebasedatabase.app
+#define DATABASE_URL "voiced-home-assistant-default-rtdb.europe-west1.firebasedatabase.app" //<databaseName>.firebaseio.com or <databaseName>.<region>.firebasedatabase.app
 
 #define DATA_PATH "/states"
 
@@ -18,7 +18,7 @@ class FirebaseListener{
 
     
     public:
-        typedef DataItem (*DataParsingCallback)(const char* , const char*);
+        typedef DataItem (*DataParsingCallback)(int , uint8_t);
         typedef void (*DataChangedCallback)(DataItem);
 
     private:
@@ -33,13 +33,13 @@ class FirebaseListener{
         static QueueHandle_t queueFlagChangedData;
         static void streamCallback(FirebaseStream data);
         static void streamTimeoutCallback(bool timeout);
-        static void onDataChangedEvent(DataChangedCallback callback);
+        static void onDataChangedEvent(DataChangedCallback* callback);
 
     public:
-        void init(int maxQueueSize);
-        void start();
+        void init();
+        void start(int maxQueueSize);
         void stop();
-        void registerDataChangeTask(DataChangedCallback callback);
+        void registerDataChangeTask(DataChangedCallback* callback);
 
         void storeInt(const char* key, int value);
         void storeBool(const char* key, bool value);

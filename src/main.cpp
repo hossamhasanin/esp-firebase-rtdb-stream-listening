@@ -6,9 +6,14 @@
 
 #include "webServer/webServer.h"
 #include "wifiManager/wifiManager.h"
+#include "freertos/FreeRTOS.h"
+#include <WiFi.h>
 
 DataHolder data;
 FirebaseListener firebaseListener;
+FirebaseListener::DataChangedCallback dataChangedCallback = [](DataItem dataItem) {
+    Serial.printf("Data changed: key: %d, value: %d", dataItem.key, (int) dataItem.value);
+};
 
 // void ifFirstTimeUp(){
 //     nvs_handle_t nvsHandle = NvsManager::openStorage();
@@ -27,34 +32,88 @@ void sendDevicesStateToFirebase(){
     firebaseListener.storeBool(String(switch1).c_str() , data.get(switch1));
 }
 
+void startFirebaseTask(void* parameter){
+    while(true){
+      bool isWifiOn;
+      if (xQueueReceive(WiFiManager::isWifiOnQueuHanle, &isWifiOn, (TickType_t) 2) == pdPASS){
+        if(isWifiOn){
+
+          Serial.println("Wifi connected");
+          ESP_ERROR_CHECK(WebServer::stopWebServer());          
+          firebaseListener.init();
+          
+          firebaseListener.start(DATA_FIELDS_COUNT);
+          firebaseListener.registerDataChangeTask(&dataChangedCallback);
+          // sendDevicesStateToFirebase();
+        } else {
+          Serial.println("Wifi disconnected");
+        }
+      }
+    }
+}
+
 void setup() {
 
+  Serial.begin(115200);
   NvsManager::initNvsMemory();
 
-  WiFiManager::setupWifi([](){
-      Serial.println("Connected to wifi");
-        
-      firebaseListener.start();
 
-      sendDevicesStateToFirebase();
-    }, [](){
-        Serial.println("Lost wifi connection");
-        firebaseListener.stop();
-    }
-  );
+  // WiFi.mode(WIFI_STA);
+  // WiFi.config(IPAddress(192,168,1,222), IPAddress(192,168,1,1), IPAddress(255,255,255,0) , IPAddress(192,168,1,1));
+  // WiFi.begin("SilliconVally" , "01005887324hgfaHossamG$$");
+
+  // while (WiFi.status() != WL_CONNECTED)
+  // {
+  //   Serial.print(".");
+  //   delay(300);
+  // }
+
+  // firebaseListener.init();
+  //     FirebaseListener::setDataParsingCallback([](int key, uint8_t value) -> DataItem {
+  //       return data.parseDataFromKeyValue(key, value);
+  //     });
+  //     firebaseListener.start(DATA_FIELDS_COUNT);
+  //     firebaseListener.registerDataChangeTask(&dataChangedCallback);
+
+  FirebaseListener::setDataParsingCallback([](int key, uint8_t value) -> DataItem {
+            return data.parseDataFromKeyValue(key, value);
+  });
+  // create task to handle firebase
+  xTaskCreate(
+    startFirebaseTask, /* Task function. */
+    "startFirebaseTask", /* name of task. */
+    1024*6, /* Stack size of task */
+    NULL, /* parameter of the task */
+    1, /* priority of the task */
+    NULL /* Task handle to keep track of created task */);
+
+  WiFiManager::setupWifi();
 
   WebServer::startWebServer(WiFiManager::startStationMode);
 
 
-  firebaseListener.init(DATA_FIELDS_COUNT);
-  
-  FirebaseListener::setDataParsingCallback([](const char* key, const char* value) -> DataItem {
-    return data.parseDataFromKeyValue(key, value);
-  });
 
-  firebaseListener.registerDataChangeTask([](DataItem dataItem) {
-    Serial.printf("Data changed: key: %d, value: %d", dataItem.key, (int) dataItem.value);
-  });
+  // WiFiManager::setupWifi([](){
+  //     Serial.println("Connected to wifi");
+        
+  //       firebaseListener.init();
+  //       FirebaseListener::setDataParsingCallback([](int key, uint8_t value) -> DataItem {
+  //         return data.parseDataFromKeyValue(key, value);
+  //       });
+  //       firebaseListener.start(DATA_FIELDS_COUNT);
+  //       firebaseListener.registerDataChangeTask(&dataChangedCallback);
+
+  //     // sendDevicesStateToFirebase();
+  //   }, [](){
+  //       Serial.println("Lost wifi connection");
+
+  //       // firebaseListener.stop();
+  //       // WebServer::startWebServer(WiFiManager::startStationMode);
+  //   }
+  // );
+
+
+
 
   vTaskDelete(NULL);
 }

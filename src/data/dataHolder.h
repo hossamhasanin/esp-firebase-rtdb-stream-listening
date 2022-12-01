@@ -11,7 +11,7 @@ class DataHolder {
         void setIfChanged(int key , uint8_t valueByte , DataItem* changedDataItem);
     
     public :
-        DataItem parseDataFromKeyValue(const char* key, const char* value);
+        DataItem parseDataFromKeyValue(int key, uint8_t value);
         uint8_t get(int key);
 
 };

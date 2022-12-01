@@ -4,7 +4,7 @@ QueueHandle_t FirebaseListener::queueFlagChangedData = NULL;
 FirebaseData FirebaseListener::stream;
 FirebaseListener::DataParsingCallback FirebaseListener::dataParsingCallback = NULL;
 
-void FirebaseListener::init(int maxQueueSize) {
+void FirebaseListener::init() {
   
 //   /* Assign the api key (required) */
 //   config.api_key = API_KEY;
@@ -18,19 +18,21 @@ void FirebaseListener::init(int maxQueueSize) {
 
   // Firebase.reconnectWiFi(true);
 
-    
-
-  queueFlagChangedData = xQueueCreate(maxQueueSize, sizeof(DataItem));
 }
 
 
-void FirebaseListener::start() {
+void FirebaseListener::start(int maxQueueSize) {
+
+  queueFlagChangedData = xQueueCreate(maxQueueSize, sizeof(DataItem));
 
   /* Initialize the library with the Firebase authen and config */
+
+  Firebase.reconnectWiFi(true);
   Firebase.begin(&config, &auth);
 
-  if (!Firebase.RTDB.beginStream(&stream, DATA_PATH)) 
-    Serial.printf("sream begin error, %s\n\n", stream.errorReason().c_str());
+  if (!Firebase.RTDB.beginStream(&stream, DATA_PATH)) {
+    Serial.printf("stream begin error, %s\n\n", stream.errorReason().c_str());
+  }
   
   // Set the callback function for the event and timeout.
   Firebase.RTDB.setStreamCallback(&stream, streamCallback, streamTimeoutCallback);
@@ -49,7 +51,7 @@ void FirebaseListener::streamTimeoutCallback(bool timeout)
 
 void FirebaseListener::streamCallback(FirebaseStream data)
 {
-  Serial.printf("sream path, %s\nevent path, %s\ndata type, %s\nevent type, %s\n\n",
+  Serial.printf("stream path %s , \n event path %s , \n data type %s, \n event type %s\n\n",
                 data.streamPath().c_str(),
                 data.dataPath().c_str(),
                 data.dataType().c_str(),
@@ -72,16 +74,55 @@ void FirebaseListener::streamCallback(FirebaseStream data)
         {
             value = json->valueAt(i);
             Serial_Printf((const char *)FPSTR("%d, Type: %s, Name: %s, Value: %s\n"), i, value.type == FirebaseJson::JSON_OBJECT ? (const char *)FPSTR("object") : (const char *)FPSTR("array"), value.key.c_str(), value.value.c_str());
-            DataItem item = dataParsingCallback(value.key.c_str(), value.value.c_str());
+            // DataItem item = dataParsingCallback(i, value.value.c_str());
             
-            if (xQueueSend(queueFlagChangedData, (void *) &item, (TickType_t) 2) != pdPASS){
-              Serial.println((const char *)FPSTR("stream queue full"));
-        }
+            // if (xQueueSend(queueFlagChangedData, (void *) &item, (TickType_t) 2) != pdPASS){
+            //   Serial.println((const char *)FPSTR("stream queue full"));
+            // }
         }
         json->iteratorEnd();
         json->clear();
 
         
+  } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_array) {
+    FirebaseJsonArray *arr = data.to<FirebaseJsonArray *>();
+    Serial.println((const char *)FPSTR("Pretty printed JSON array:"));
+    arr->toString(Serial, true);
+    Serial.println();
+    Serial.println((const char *)FPSTR("Iterate JSON array:"));
+    Serial.println();
+    size_t len = arr->iteratorBegin();
+    FirebaseJson::IteratorValue value;
+    for (size_t i = 0; i < len; i++)
+    {
+        value = arr->valueAt(i);
+        Serial_Printf((const char *)FPSTR("%d, Type: %s, Value: %s\n"), i, value.type == FirebaseJson::JSON_OBJECT ? (const char *)FPSTR("object") : (const char *)FPSTR("array"), value.value.c_str());
+
+        // DataItem item = FirebaseListener::dataParsingCallback(i, value.value.c_str());
+        
+        // Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), item.key, item.value);
+
+        // if (xQueueSend(queueFlagChangedData, (void *) &item, (TickType_t) 2) != pdPASS){
+        //   Serial.println((const char *)FPSTR("stream queue full"));
+        // }
+    }
+    arr->iteratorEnd();
+    arr->clear();
+  } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_integer) {
+    // extract the key from "/1" data path
+    int key = atoi(data.dataPath().c_str() + 1);
+    DataItem item = FirebaseListener::dataParsingCallback(key, data.intData());    
+    Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), item.key, item.value);
+    if (xQueueSend(queueFlagChangedData, (void *) &item, (TickType_t) 2) != pdPASS){
+        Serial.println((const char *)FPSTR("stream queue full"));
+    }
+  } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_boolean) {
+    int key = atoi(data.dataPath().c_str() + 1);
+    DataItem item = FirebaseListener::dataParsingCallback(key, data.boolData());    
+    Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), item.key, item.value);
+    if (xQueueSend(queueFlagChangedData, (void *) &item, (TickType_t) 2) != pdPASS){
+        Serial.println((const char *)FPSTR("stream queue full"));
+    }
   } else {
     Serial.println((const char *)FPSTR("Data type is not JSON"));
   }
@@ -97,29 +138,33 @@ void FirebaseListener::streamCallback(FirebaseStream data)
   // Just set this flag and check it status later.
 }
 
-void FirebaseListener::onDataChangedEvent(DataChangedCallback callback) {
+void FirebaseListener::onDataChangedEvent(DataChangedCallback* callback) {
   DataItem dataChanged;
   if (xQueueReceive(queueFlagChangedData, &dataChanged, (TickType_t) 2) == pdPASS){
     // if (dataChanged.key != NULL) {
       // Do something here
       Serial.println((const char *)FPSTR("Some data has been changed"));
-      callback(dataChanged);
+      Serial.println(dataChanged.key);
+      Serial.println(dataChanged.value);
+      (*callback)(dataChanged);
     // }
   }
 }
 
-void FirebaseListener::registerDataChangeTask(DataChangedCallback callback) {
+void FirebaseListener::registerDataChangeTask(DataChangedCallback* callback) {
   xTaskCreate(
     [](void *param) {
       while (true) {
-        DataChangedCallback* callback = (DataChangedCallback*) param;
-        FirebaseListener::onDataChangedEvent(*callback);
+        DataChangedCallback* c = (DataChangedCallback*) param;
+        if (queueFlagChangedData != NULL) {
+          FirebaseListener::onDataChangedEvent(c);
+        }
       }
     },
     "dataChangeTask",
-    1024,
-    &callback,
-    1,
+    1024*2,
+    callback,
+    3,
     &_dataChangeHandle
   );
 }
@@ -131,8 +176,8 @@ void FirebaseListener::setDataParsingCallback(DataParsingCallback callback) {
 void FirebaseListener::stop() {
   Firebase.RTDB.endStream(&stream);
   // delete task
-  // vTaskDelete(_dataChangeHandle);
-  // xQueueReset(queueFlagChangedData);
+  vTaskDelete(_dataChangeHandle);
+  xQueueReset(queueFlagChangedData);
 }
 
 void FirebaseListener::storeInt(const char* key, int value) {

@@ -3,30 +3,23 @@
 #include <string.h>
 #include <Arduino.h>
 
-DataItem DataHolder::parseDataFromKeyValue(const char* key, const char* value) {
+DataItem DataHolder::parseDataFromKeyValue(int key, uint8_t value) {
     // convert key to int
-    int keyInt = atoi(key);
+    // int keyInt = key;
     DataItem changedDataItem;
     
-    uint8_t valueByte;
     // compare the key with 0
-    if (keyInt == temprature) {
-        // parse the value to int
-        valueByte = (uint8_t)atoi(value);
+    // if (keyInt == temprature) {
+    //     // parse the value to int
+    //     setIfChanged(temprature, value, &changedDataItem);
+    // } else if (keyInt == switch1) {
 
-        setIfChanged(temprature, valueByte, &changedDataItem);
-    } else if (keyInt == switch1) {
-        // parse the value to bool
-        if (strcmp(value, "true") == 0) {
-            valueByte = true;
-        } else {
-            valueByte = false;
-        }
-
-        setIfChanged(switch1, valueByte, &changedDataItem);
-    } else {
-        Serial.println("Unknown key "+String(key));
-    }
+    //     setIfChanged(switch1, value, &changedDataItem);
+    // } else {
+    //     Serial.println("Unknown key "+String(key));
+    // }
+    
+    setIfChanged(key, value, &changedDataItem);
 
     return changedDataItem;
 }
