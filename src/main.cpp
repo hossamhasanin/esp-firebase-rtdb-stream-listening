@@ -8,23 +8,24 @@
 #include "wifiManager/wifiManager.h"
 #include "freertos/FreeRTOS.h"
 #include <WiFi.h>
+#include <string>
 
 DataHolder data;
 FirebaseListener firebaseListener;
 FirebaseListener::DataChangedCallback onlineDataChangedCallback = [](DataItem dataItem) {
-    Serial.printf("Online data changed: key: %d, value: %d", dataItem.key, (int) dataItem.value);
+    Serial.printf("\n Online data changed: key: %d, value: %d", dataItem.key, (int) dataItem.value);
 
     data.set(dataItem.key, dataItem.value);
 
     //TODO: here send the changed data to microcontroller using serial
 };
 WebServer::OnOfflineDataChangedCallback offlineDataChangedCallback = [](int key, int value) {
-    Serial.printf("Offline data changed: key: %d, value: %d", key, value);
+    Serial.printf("\n Offline data changed: key: %d, value: %d", key, value);
 
     data.set(key, value);
 };
 
-WebServer::GetDevicesAsJsonString getDevicesAsJsonString = []() -> std::string {
+GetDevicesAsJsonString getDevicesAsJsonString = []() -> const char* {
     std::string devices = "{\"devices\":[/s]}";
 
     for (int i = 0; i < DATA_FIELDS_COUNT; i++) {
@@ -36,7 +37,7 @@ WebServer::GetDevicesAsJsonString getDevicesAsJsonString = []() -> std::string {
         devices.replace(devices.find("/s"), 2, device);
     }
 
-    return devices;
+    return devices.c_str();
 };
 
 // void ifFirstTimeUp(){
@@ -71,6 +72,8 @@ void startFirebaseTask(void* parameter){
           // sendDevicesStateToFirebase();
         } else {
           Serial.println("Wifi disconnected");
+
+          WebServer::startWebServer(WiFiManager::startStationMode);
         }
       }
     }
@@ -113,9 +116,9 @@ void setup() {
 
   WiFiManager::setupWifi();
 
-  WebServer::startWebServer(WiFiManager::startStationMode);
-
   WebServer::setOnOfflineDataChangedCallback(offlineDataChangedCallback);
+
+  WebServer::setGetDevicesAsJsonStringCallback(getDevicesAsJsonString);
 
 
 

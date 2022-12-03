@@ -7,24 +7,27 @@
 
 #include "esp_tls_crypto.h"
 #include <esp_http_server.h>
-#include <string.h>
+#include <string>
 
 typedef void (*OnCredintialsSet)(const char*, const char*);
+typedef const char* (*GetDevicesAsJsonString)();
+
 
 #define MAX_SOCKET_CLIENTS 10
 #define CONFIG_HTTPD_WS_SUPPORT 1
 
 
-namespace WebServer {
+namespace WebServer {    
 
     typedef void (*OnOfflineDataChangedCallback)(int, int);
-    typedef std::string (*GetDevicesAsJsonString)();
 
     void registerHandlers();
 
     void startWebServer(OnCredintialsSet callback);
 
     void setOnOfflineDataChangedCallback(OnOfflineDataChangedCallback callback);
+
+    void setGetDevicesAsJsonStringCallback(GetDevicesAsJsonString callback);
 
     void sendChangesToWebSocketAsync(int key, int value);
 

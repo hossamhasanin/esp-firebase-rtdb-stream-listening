@@ -5,7 +5,7 @@
 static httpd_handle_t server = NULL;
 static OnCredintialsSet onCredintialsSet = NULL;
 static WebServer::OnOfflineDataChangedCallback onDataChangedCallback = NULL;
-static WebServer::GetDevicesAsJsonString getDevicesAsJsonString = NULL;
+static GetDevicesAsJsonString getDevicesAsJsonString = NULL;
 
 /* An HTTP GET handler */
 static esp_err_t checkConnectedGetHandler(httpd_req_t* req){
@@ -89,7 +89,6 @@ static esp_err_t webSocketHandler(httpd_req_t *req)
     if (req->method == HTTP_GET) {
         Serial.println("Handshake done, the new connection was opened");
 
-        // TODO: Send the current state of the devices to the client
         std::string devices = getDevicesAsJsonString();
         httpd_ws_frame_t ws_pkt;    
         ws_pkt.payload = (uint8_t*)devices.c_str();
@@ -223,7 +222,10 @@ void WebServer::setOnOfflineDataChangedCallback(OnOfflineDataChangedCallback cal
     onDataChangedCallback = callback;
 }
 
-
+void WebServer::setGetDevicesAsJsonStringCallback(GetDevicesAsJsonString callback)
+{
+    getDevicesAsJsonString = callback;
+}
 
 void WebServer::startWebServer(OnCredintialsSet callback){
 
@@ -241,6 +243,7 @@ void WebServer::startWebServer(OnCredintialsSet callback){
         // Set URI handlers
         httpd_register_uri_handler(server, &checkConnected);
         httpd_register_uri_handler(server, &wifiCredintials);
+        httpd_register_uri_handler(server, &ws);
         Serial.println("Registered URI handlers");
     } else {
             ESP_LOGI(TAG, "Error starting server!");
@@ -252,5 +255,6 @@ void WebServer::startWebServer(OnCredintialsSet callback){
 esp_err_t WebServer::stopWebServer(){
     httpd_unregister_uri(server, "/check_connected");
     httpd_unregister_uri(server, "/connect");
+    httpd_unregister_uri(server, "/ws");
     return httpd_stop(server);
 }

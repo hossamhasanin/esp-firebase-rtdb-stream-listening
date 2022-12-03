@@ -94,9 +94,11 @@ void gotIp(arduino_event_id_t event, arduino_event_info_t info){
 int connectRetries = 0;
 void staDisconnected(arduino_event_id_t event, arduino_event_info_t info){
     Serial.println("[+] Station disconnected");
+    // print wifi status to serial
+    Serial.println(WiFi.status());
 
     connectRetries++;
-    if (connectRetries > 2){
+    if (connectRetries >= 1){
         bool isWifiOn = false;
         if (xQueueSend(WiFiManager::isWifiOnQueuHanle, &isWifiOn, (TickType_t) 2) != pdPASS){
              Serial.println((const char *)FPSTR("stream queue full"));
