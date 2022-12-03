@@ -13,6 +13,7 @@ class DataHolder {
     public :
         DataItem parseDataFromKeyValue(int key, uint8_t value);
         uint8_t get(int key);
+        void set(int key , uint8_t value);
 
 };
 

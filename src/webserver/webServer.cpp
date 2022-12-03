@@ -4,6 +4,8 @@
 
 static httpd_handle_t server = NULL;
 static OnCredintialsSet onCredintialsSet = NULL;
+static WebServer::OnOfflineDataChangedCallback onDataChangedCallback = NULL;
+static WebServer::GetDevicesAsJsonString getDevicesAsJsonString = NULL;
 
 /* An HTTP GET handler */
 static esp_err_t checkConnectedGetHandler(httpd_req_t* req){
@@ -82,6 +84,146 @@ static const httpd_uri_t wifiCredintials = {
 };
 
 
+static esp_err_t webSocketHandler(httpd_req_t *req)
+{
+    if (req->method == HTTP_GET) {
+        Serial.println("Handshake done, the new connection was opened");
+
+        // TODO: Send the current state of the devices to the client
+        std::string devices = getDevicesAsJsonString();
+        httpd_ws_frame_t ws_pkt;    
+        ws_pkt.payload = (uint8_t*)devices.c_str();
+        ws_pkt.len = devices.length();
+        ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+
+        return httpd_ws_send_frame(req, &ws_pkt);
+    }
+    httpd_ws_frame_t ws_pkt;
+    uint8_t *buf = NULL;
+    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+    /* Set max_len = 0 to get the frame len */
+    esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
+    if (ret != ESP_OK) {
+        Serial.println("httpd_ws_recv_frame failed to get frame len with");
+        return ret;
+    }
+    Serial.printf("\n frame len is %d" , ws_pkt.len);
+
+    if (ws_pkt.len) {
+        /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
+        buf = (uint8_t*) calloc(1, ws_pkt.len + 1);
+        if (buf == NULL) {
+            Serial.println("Failed to calloc memory for buf");
+            return ESP_ERR_NO_MEM;
+        }
+        ws_pkt.payload = buf;
+        /* Set max_len = ws_pkt.len to get the frame payload */
+        ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
+        if (ret != ESP_OK) {
+            Serial.println("httpd_ws_recv_frame failed with %d");
+            free(buf);
+            return ret;
+        }
+        Serial.printf("\n Got packet with message: %s", ws_pkt.payload);
+    }
+    Serial.printf("Packet type: %d", ws_pkt.type);
+    /* parese the received data
+        Data format: <device_index>_<state>
+        ex: 0_35
+        ex: 1_0
+    */
+
+   if (ws_pkt.type == HTTPD_WS_TYPE_TEXT){
+        char* token = strtok((char*)ws_pkt.payload, "_");
+        int device_index = atoi(token);
+        token = strtok(NULL, "_");
+        int state = atoi(token);
+        Serial.printf("\n device_index: %d, state: %d", device_index, state);
+
+        onDataChangedCallback(device_index, state);
+        return ESP_OK;
+   }
+    
+    // if (ws_pkt.type == HTTPD_WS_TYPE_TEXT &&
+    //     strcmp((char*)ws_pkt.payload,"Trigger async") == 0) {
+    //     free(buf);
+    //     return trigger_async_send(req->handle, req);
+    // }
+
+    ret = httpd_ws_send_frame(req, &ws_pkt);
+    if (ret != ESP_OK) {
+        Serial.println("httpd_ws_send_frame failed with %d");
+    }
+    free(buf);
+    return ret;
+}
+
+static const httpd_uri_t ws = {
+        .uri        = "/ws",
+        .method     = HTTP_GET,
+        .handler    = webSocketHandler,
+        .user_ctx   = NULL,
+        .is_websocket = true
+};
+
+struct async_resp_arg {
+    // httpd_handle_t hd;
+    int fd;
+
+    int device_index;
+    int state;
+};
+
+/*
+ * async send function, which we put into the httpd work queue
+ */
+static void ws_async_send(void *arg)
+{
+
+    Serial.println("sendChangesToWebSocketAsync");
+    char data[32];
+    struct async_resp_arg* resp_arg = (async_resp_arg*) arg;
+    // httpd_handle_t hd = resp_arg->hd;
+    // int fd = resp_arg->fd;
+
+    sprintf(data, "{\"device\":\"%d_%d\"}", resp_arg->device_index, resp_arg->state);
+    Serial.println(data);
+    httpd_ws_frame_t ws_pkt;
+    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+    ws_pkt.payload = (uint8_t*)data;
+    ws_pkt.len = strlen(data);
+    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+
+    
+    httpd_ws_send_frame_async(server , resp_arg->fd, &ws_pkt);
+    free(resp_arg);
+}
+
+
+void WebServer::sendChangesToWebSocketAsync(int device_index, int state)
+{
+
+    size_t len = MAX_SOCKET_CLIENTS;
+    int socketClints[MAX_SOCKET_CLIENTS];
+    ESP_ERROR_CHECK(httpd_get_client_list(server, &len, socketClints));
+
+    for (int i = 0; i < len; i++) {
+        Serial.printf("Sending to socket %d", socketClints[i]);
+        struct async_resp_arg *resp_arg = (async_resp_arg*) malloc(sizeof(struct async_resp_arg));
+        resp_arg->device_index = device_index;
+        resp_arg->state = state;
+        resp_arg->fd = socketClints[i];
+        ESP_ERROR_CHECK(httpd_queue_work(server, ws_async_send, resp_arg));
+    }
+}
+
+void WebServer::setOnOfflineDataChangedCallback(OnOfflineDataChangedCallback callback)
+{
+    onDataChangedCallback = callback;
+}
+
+
 
 void WebServer::startWebServer(OnCredintialsSet callback){
 
@@ -89,6 +231,7 @@ void WebServer::startWebServer(OnCredintialsSet callback){
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.lru_purge_enable = true;
+    config.max_open_sockets = MAX_SOCKET_CLIENTS;
 
     // Start the httpd server
     ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
