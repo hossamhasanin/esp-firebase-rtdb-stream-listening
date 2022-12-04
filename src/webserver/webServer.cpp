@@ -89,13 +89,15 @@ static esp_err_t webSocketHandler(httpd_req_t *req)
     if (req->method == HTTP_GET) {
         Serial.println("Handshake done, the new connection was opened");
 
-        std::string devices = getDevicesAsJsonString();
-        httpd_ws_frame_t ws_pkt;    
-        ws_pkt.payload = (uint8_t*)devices.c_str();
-        ws_pkt.len = devices.length();
-        ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+        // std::string devices = getDevicesAsJsonString();
+        // httpd_ws_frame_t ws_pkt;    
+        // ws_pkt.payload = (uint8_t*)devices.c_str();
+        // ws_pkt.len = devices.length();
+        // ws_pkt.type = HTTPD_WS_TYPE_TEXT;
 
-        return httpd_ws_send_frame(req, &ws_pkt);
+        // return httpd_ws_send_frame(req, &ws_pkt);
+
+        return ESP_OK;
     }
     httpd_ws_frame_t ws_pkt;
     uint8_t *buf = NULL;
@@ -141,6 +143,9 @@ static esp_err_t webSocketHandler(httpd_req_t *req)
         Serial.printf("\n device_index: %d, state: %d", device_index, state);
 
         onDataChangedCallback(device_index, state);
+
+        WebServer::sendChangesToWebSocketAsync(device_index, state);
+
         return ESP_OK;
    }
     
@@ -180,7 +185,7 @@ struct async_resp_arg {
 static void ws_async_send(void *arg)
 {
 
-    Serial.println("sendChangesToWebSocketAsync");
+    Serial.println("\n sendChangesToWebSocketAsync");
     char data[32];
     struct async_resp_arg* resp_arg = (async_resp_arg*) arg;
     // httpd_handle_t hd = resp_arg->hd;
