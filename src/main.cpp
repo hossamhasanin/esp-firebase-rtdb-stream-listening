@@ -64,7 +64,9 @@ void startFirebaseTask(void* parameter){
         if(isWifiOn){
 
           Serial.println("Wifi connected");
-          ESP_ERROR_CHECK(WebServer::stopWebServer());          
+          // ESP_ERROR_CHECK(WebServer::stopWebServer());  
+          //TODO: Don't stop the web server, just stop the websocket register and unregister the other unneeded callbacks
+            
           firebaseListener.init();
           
           firebaseListener.start(DATA_FIELDS_COUNT);

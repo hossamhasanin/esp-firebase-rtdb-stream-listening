@@ -1,5 +1,6 @@
 #include "wifiManager.h"
 #include "data/nvsManager/nvsManager.h"
+#include "freertos/FreeRTOS.h"
 
 
 static IPAddress local_ip(192,168,1,222);
@@ -53,10 +54,21 @@ void WiFiManager::setupWifi(){
     if (ssid.empty() || password.empty()){
         Serial.println("No stored wifi credentials");
         WiFiManager::startAPMode();
+        bool isWifiOn = false;
+        if (xQueueSend(WiFiManager::isWifiOnQueuHanle, &isWifiOn, (TickType_t) 2) != pdPASS){
+                Serial.println((const char *)FPSTR("stream queue full"));
+        }
     } else {
         Serial.println("Found stored wifi credentials");
         WiFiManager::startStationMode(ssid.c_str(), password.c_str());
     }
+    
+    
+    // WiFiManager::startAPMode();
+    // bool isWifiOn = false;
+    // if (xQueueSend(WiFiManager::isWifiOnQueuHanle, &isWifiOn, (TickType_t) 2) != pdPASS){
+    //          Serial.println((const char *)FPSTR("stream queue full"));
+    // }
 
     
     NvsManager::closeStorage(nvsHandle);
