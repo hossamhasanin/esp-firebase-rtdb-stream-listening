@@ -32,4 +32,6 @@ namespace WebServer {
     void sendChangesToWebSocketAsync(int key, int value);
 
     esp_err_t stopWebServer();
+
+    void stopWebSocket();
 }

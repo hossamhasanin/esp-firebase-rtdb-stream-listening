@@ -1,6 +1,8 @@
 #include <Firebase_ESP_Client.h>
 #include "freertos/FreeRTOS.h"
 #include "data/dataItem.h"
+#include "freertos/semphr.h"
+#include "driver/timer.h"
 
 /* 2. Define the API Key */
 #define API_KEY "API_KEY"
@@ -10,6 +12,9 @@
 
 #define DATA_PATH "/states"
 
+#define LAST_ONLINE_PATH "/lastOnlineTime"
+
+#define TIMER_DIVIDER   (80)
 
 
 
@@ -21,11 +26,16 @@ class FirebaseListener{
         typedef DataItem (*DataParsingCallback)(int , uint8_t);
         typedef void (*DataChangedCallback)(DataItem);
 
+        static SemaphoreHandle_t timerSem;
+        static FirebaseData fbdo;
+
     private:
         FirebaseConfig config;
-        FirebaseData fbdo;
         FirebaseAuth auth;
         TaskHandle_t _dataChangeHandle;
+        static TaskHandle_t _timerHandle;
+
+        static bool IRAM_ATTR timerCallback(void* arg);
 
         static DataParsingCallback dataParsingCallback;
         static FirebaseData stream;
@@ -34,15 +44,18 @@ class FirebaseListener{
         static void streamCallback(FirebaseStream data);
         static void streamTimeoutCallback(bool timeout);
         static void onDataChangedEvent(DataChangedCallback* callback);
+        static void notifyDataChangedToQueue(DataItem dataItem);
 
     public:
         void init();
         void start(int maxQueueSize);
         void stop();
         void registerDataChangeTask(DataChangedCallback* callback);
+        void registerTimerToUpdateLastOnline();
 
         void storeInt(const char* key, int value);
         void storeBool(const char* key, bool value);
+        void updateTimaStamp();
         
         static void setDataParsingCallback(DataParsingCallback callback);
     

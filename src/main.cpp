@@ -9,6 +9,7 @@
 #include "freertos/FreeRTOS.h"
 #include <WiFi.h>
 #include <string>
+#include <esp_task_wdt.h>
 
 DataHolder data;
 FirebaseListener firebaseListener;
@@ -65,16 +66,18 @@ void startFirebaseTask(void* parameter){
 
           Serial.println("Wifi connected");
           // ESP_ERROR_CHECK(WebServer::stopWebServer());  
-          //TODO: Don't stop the web server, just stop the websocket register and unregister the other unneeded callbacks
+          WebServer::stopWebSocket();
             
           firebaseListener.init();
           
           firebaseListener.start(DATA_FIELDS_COUNT);
           firebaseListener.registerDataChangeTask(&onlineDataChangedCallback);
-          // sendDevicesStateToFirebase();
+          firebaseListener.registerTimerToUpdateLastOnline();
+          sendDevicesStateToFirebase();
         } else {
           Serial.println("Wifi disconnected");
 
+          firebaseListener.stop();
           WebServer::startWebServer(WiFiManager::startStationMode);
         }
       }
@@ -86,6 +89,7 @@ void setup() {
   Serial.begin(115200);
   NvsManager::initNvsMemory();
 
+  esp_task_wdt_init(30, false);
 
   // WiFi.mode(WIFI_STA);
   // WiFi.config(IPAddress(192,168,1,222), IPAddress(192,168,1,1), IPAddress(255,255,255,0) , IPAddress(192,168,1,1));
@@ -107,6 +111,7 @@ void setup() {
   FirebaseListener::setDataParsingCallback([](int key, uint8_t value) -> DataItem {
             return data.parseDataFromKeyValue(key, value);
   });
+
   // create task to handle firebase
   xTaskCreate(
     startFirebaseTask, /* Task function. */
@@ -121,6 +126,7 @@ void setup() {
   WebServer::setOnOfflineDataChangedCallback(offlineDataChangedCallback);
 
   WebServer::setGetDevicesAsJsonStringCallback(getDevicesAsJsonString);
+
 
 
 
@@ -146,9 +152,11 @@ void setup() {
 
 
 
-  vTaskDelete(NULL);
+  // vTaskDelete(NULL);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+  
+  firebaseListener.updateTimaStamp();
 }

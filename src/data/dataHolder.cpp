@@ -26,7 +26,11 @@ DataItem DataHolder::parseDataFromKeyValue(int key, uint8_t value) {
 
 void DataHolder::setIfChanged(int key , uint8_t valueByte , DataItem* changedDataItem) {
     
-    if (valueByte == _data[key]) return;
+    if (valueByte == _data[key]) {
+        changedDataItem->key = -1;
+        changedDataItem->value = -1;
+        return;
+    }
 
     _data[key] = valueByte;
     changedDataItem->key = key;

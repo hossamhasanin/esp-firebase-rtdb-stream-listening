@@ -258,8 +258,14 @@ void WebServer::startWebServer(OnCredintialsSet callback){
 }
 
 esp_err_t WebServer::stopWebServer(){
+    if (server == NULL) return ESP_OK;
     httpd_unregister_uri(server, "/check_connected");
     httpd_unregister_uri(server, "/connect");
-    httpd_unregister_uri(server, "/ws");
+    // httpd_unregister_uri(server, "/ws");
     return httpd_stop(server);
+}
+
+void WebServer::stopWebSocket(){
+    if (server == NULL) return;
+    ESP_ERROR_CHECK(httpd_unregister_uri(server, "/ws"));
 }

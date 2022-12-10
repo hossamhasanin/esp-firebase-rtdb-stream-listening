@@ -1,7 +1,11 @@
 #include "firebaseListener.h"
 
 QueueHandle_t FirebaseListener::queueFlagChangedData = NULL;
+TaskHandle_t FirebaseListener::_timerHandle = NULL;
+SemaphoreHandle_t FirebaseListener::timerSem = NULL;
+
 FirebaseData FirebaseListener::stream;
+FirebaseData FirebaseListener::fbdo;
 FirebaseListener::DataParsingCallback FirebaseListener::dataParsingCallback = NULL;
 
 void FirebaseListener::init() {
@@ -113,16 +117,12 @@ void FirebaseListener::streamCallback(FirebaseStream data)
     int key = atoi(data.dataPath().c_str() + 1);
     DataItem item = FirebaseListener::dataParsingCallback(key, data.intData());    
     Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), item.key, item.value);
-    if (xQueueSend(queueFlagChangedData, (void *) &item, (TickType_t) 2) != pdPASS){
-        Serial.println((const char *)FPSTR("stream queue full"));
-    }
+    notifyDataChangedToQueue(item);
   } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_boolean) {
     int key = atoi(data.dataPath().c_str() + 1);
     DataItem item = FirebaseListener::dataParsingCallback(key, data.boolData());    
     Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), item.key, item.value);
-    if (xQueueSend(queueFlagChangedData, (void *) &item, (TickType_t) 2) != pdPASS){
-        Serial.println((const char *)FPSTR("stream queue full"));
-    }
+    notifyDataChangedToQueue(item);
   } else {
     Serial.println((const char *)FPSTR("Data type is not JSON"));
   }
@@ -136,6 +136,14 @@ void FirebaseListener::streamCallback(FirebaseStream data)
 
   // Due to limited of stack memory, do not perform any task that used large memory here especially starting connect to server.
   // Just set this flag and check it status later.
+}
+
+void FirebaseListener::notifyDataChangedToQueue(DataItem item){
+  if (item.key != -1){
+      if (xQueueSend(queueFlagChangedData, (void *) &item, (TickType_t) 2) != pdPASS){
+        Serial.println((const char *)FPSTR("stream queue full"));
+      }
+  }
 }
 
 void FirebaseListener::onDataChangedEvent(DataChangedCallback* callback) {
@@ -173,11 +181,69 @@ void FirebaseListener::setDataParsingCallback(DataParsingCallback callback) {
   FirebaseListener::dataParsingCallback = callback;
 }
 
+bool IRAM_ATTR  FirebaseListener::timerCallback(void *param) {
+  Serial.println((const char *)FPSTR("Update last online interrupt"));
+
+    BaseType_t high_task_awoken = pdFALSE;
+    xSemaphoreGiveFromISR(timerSem, &high_task_awoken);
+    return (high_task_awoken == pdTRUE);
+}
+
+
+
+void FirebaseListener::registerTimerToUpdateLastOnline(){
+    timerSem = xSemaphoreCreateBinary();
+    if (timerSem == NULL) {
+        printf("Binary semaphore can not be created");
+    }
+    timer_config_t config = {
+        .alarm_en = TIMER_ALARM_EN,
+        .counter_en = TIMER_PAUSE,
+        .counter_dir = TIMER_COUNT_UP,
+        .auto_reload = TIMER_AUTORELOAD_EN,
+        .divider = TIMER_DIVIDER
+    };
+    timer_init(TIMER_GROUP_0, TIMER_0, &config);
+    timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0);
+    // set alarm to 30 seconds
+    timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, 30000000);
+
+    timer_enable_intr(TIMER_GROUP_0, TIMER_0);
+    timer_isr_callback_add(TIMER_GROUP_0, TIMER_0, FirebaseListener::timerCallback, NULL, 0);
+    timer_start(TIMER_GROUP_0, TIMER_0);
+
+}
+
+
 void FirebaseListener::stop() {
+
+  // check if not initialized get out
+  if (timerSem == nullptr) {
+    return;
+  }
+
   Firebase.RTDB.endStream(&stream);
   // delete task
   vTaskDelete(_dataChangeHandle);
   xQueueReset(queueFlagChangedData);
+
+  // delete timer
+  timer_disable_intr(TIMER_GROUP_0, TIMER_0);
+  timer_isr_callback_remove(TIMER_GROUP_0, TIMER_0);
+  timer_pause(TIMER_GROUP_0, TIMER_0);
+  timer_deinit(TIMER_GROUP_0, TIMER_0);
+  vSemaphoreDelete(timerSem);
+  timerSem = nullptr;
+}
+
+void FirebaseListener::updateTimaStamp(){
+  if (timerSem != NULL){
+    if (xSemaphoreTake(timerSem, portMAX_DELAY) == pdPASS) {
+      Serial.println((const char *)FPSTR("Updating last online"));
+      Firebase.RTDB.setTimestamp(&fbdo, LAST_ONLINE_PATH);
+      Serial.println((const char *)FPSTR("Updated last online"));
+    }
+  }
 }
 
 void FirebaseListener::storeInt(const char* key, int value) {
