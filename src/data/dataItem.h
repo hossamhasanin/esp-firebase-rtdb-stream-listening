@@ -4,6 +4,6 @@
 
 
 struct DataItem {
-  uint8_t key;
+  int8_t key;
   uint8_t value;
 };

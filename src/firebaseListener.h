@@ -1,6 +1,9 @@
+#pragma once
+
 #include <Firebase_ESP_Client.h>
 #include "freertos/FreeRTOS.h"
 #include "data/dataItem.h"
+#include "data/dataHolder.h"
 #include "freertos/semphr.h"
 #include "driver/timer.h"
 
@@ -55,6 +58,7 @@ class FirebaseListener{
 
         void storeInt(const char* key, int value);
         void storeBool(const char* key, bool value);
+        void saveField(DataItem dataItem);
         void updateTimaStamp();
         
         static void setDataParsingCallback(DataParsingCallback callback);

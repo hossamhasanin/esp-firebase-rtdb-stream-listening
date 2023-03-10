@@ -115,11 +115,13 @@ void FirebaseListener::streamCallback(FirebaseStream data)
   } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_integer) {
     // extract the key from "/1" data path
     int key = atoi(data.dataPath().c_str() + 1);
+    Serial.printf("key %d \n" , key);
     DataItem item = FirebaseListener::dataParsingCallback(key, data.intData());    
     Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), item.key, item.value);
     notifyDataChangedToQueue(item);
   } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_boolean) {
     int key = atoi(data.dataPath().c_str() + 1);
+    Serial.printf("key %d \n" , key);
     DataItem item = FirebaseListener::dataParsingCallback(key, data.boolData());    
     Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), item.key, item.value);
     notifyDataChangedToQueue(item);
@@ -262,4 +264,26 @@ void FirebaseListener::storeBool(const char* key, bool value) {
   strcat(path, "/");
   strcat(path, key);
   Firebase.RTDB.setBool(&fbdo, path, value);
+}
+
+void FirebaseListener::saveField(DataItem item){
+  if (item.key == temp){
+    storeInt(String(item.key).c_str(), item.value);
+  } else if (item.key == doorState){
+    storeBool(String(item.key).c_str(), item.value);
+  } else if (item.key == led1){
+    storeBool(String(item.key).c_str(), item.value);
+  } else if (item.key == electri){
+    storeBool(String(item.key).c_str(), item.value);
+  } else if (item.key == rgblState){
+    storeBool(String(item.key).c_str(), item.value);
+  } else if (item.key == gasLeakAlarm){
+    storeBool(String(item.key).c_str(), item.value);
+  } else if (item.key == numOfPeople){
+    storeInt(String(item.key).c_str(), item.value);
+  } else if (item.key == powerConsumption){
+    storeInt(String(item.key).c_str(), item.value);
+  } else if (item.key == passwordWrongAlarm){
+    storeBool(String(item.key).c_str(), item.value);
+  }
 }
