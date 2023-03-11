@@ -26,6 +26,7 @@ class DataHolder {
         bool setByteData(uint8_t key, uint8_t value);
         bool setBoolData(uint8_t key, bool value);
         bool setDoubleData(uint8_t key, double value);
+        static bool isKeyValid(uint8_t key);
 
         uint8_t getByteData(uint8_t key);
         // create getters for the fields

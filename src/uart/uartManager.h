@@ -22,6 +22,9 @@ struct ReceivedData {
     bool gotKey;
 };
 
+
+void reverseString(char *str);
+
 class UartManager {
 
     public:

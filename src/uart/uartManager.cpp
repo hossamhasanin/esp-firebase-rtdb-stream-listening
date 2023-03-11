@@ -70,15 +70,33 @@ static void uart_event_task(void *pvParameters)
     vTaskDelete(NULL);
 }
 
+void reverseString(char *str) {
+    int len = strlen(str);
+    int i, j;
+    char temp;
+
+    for (i = 0, j = len - 1; i < j; i++, j--) {
+        temp = str[i];
+        str[i] = str[j];
+        str[j] = temp;
+    }
+}
+
 void UartManager::parseReceivedData(ReceivedData* receivedData, uint8_t* data , char* powerConsumptionBuffer){
     if (!receivedData->gotKey){
         receivedData->key = atoi((char*)data);
+        if (!DataHolder::isKeyValid(receivedData->key)){
+            Serial.println("uart key is not valid");
+            return;
+        }
         receivedData->gotKey = true;
     } else {
         if (receivedData->key == powerConsumptionId){
             // check if character (*) is received
             if (*data == '*'){
                 receivedData->gotKey = false;
+                // reverse the powerConsumptionBuffer
+                reverseString(powerConsumptionBuffer);
                 double powerConsumption = atof(powerConsumptionBuffer)/1000;
                 Serial.print("powerConsumption done: ");
                 Serial.println(powerConsumption);

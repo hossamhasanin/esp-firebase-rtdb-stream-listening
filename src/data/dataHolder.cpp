@@ -143,3 +143,27 @@ uint8_t DataHolder::getByteData(uint8_t key) {
         throw "Un supported get key "+String(key);
     }
 }
+
+bool DataHolder::isKeyValid(uint8_t key) {
+    if (key == doorStateId){
+        return true;
+    } else if (key == tempId){
+        return true;
+    } else if (key == led1Id){
+        return true;
+    } else if (key == electriId){
+        return true;
+    } else if (key == rgblStateId){
+        return true;
+    } else if (key == gasLeakAlarmId){
+        return true;
+    } else if (key == numOfPeopleId){
+        return true;
+    } else if (key == powerConsumptionId){
+        return true;
+    } else if (key == passwordWrongAlarmId){
+        return true;
+    } else {
+        return false;
+    }
+}
