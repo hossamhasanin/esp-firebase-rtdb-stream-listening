@@ -15,6 +15,8 @@
 
 #define DATA_PATH "/states"
 
+#define POWER_CONSUMPTION_PATH "/powerConsumption"
+
 #define LAST_ONLINE_PATH "/lastOnlineTime"
 
 #define TIMER_DIVIDER   (80)
@@ -26,11 +28,12 @@ class FirebaseListener{
 
     
     public:
-        typedef DataItem (*DataParsingCallback)(int , uint8_t);
-        typedef void (*DataChangedCallback)(DataItem);
+        // typedef DataItem (*DataParsingCallback)(int , uint8_t);
+        typedef void (*DataChangedCallback)(uint8_t);
 
         static SemaphoreHandle_t timerSem;
         static FirebaseData fbdo;
+        static DataHolder* data;
 
     private:
         FirebaseConfig config;
@@ -40,27 +43,28 @@ class FirebaseListener{
 
         static bool IRAM_ATTR timerCallback(void* arg);
 
-        static DataParsingCallback dataParsingCallback;
+        // static DataParsingCallback dataParsingCallback;
         static FirebaseData stream;
         // create queue to detect if data is changed
         static QueueHandle_t queueFlagChangedData;
         static void streamCallback(FirebaseStream data);
         static void streamTimeoutCallback(bool timeout);
         static void onDataChangedEvent(DataChangedCallback* callback);
-        static void notifyDataChangedToQueue(DataItem dataItem);
+        static void notifyDataChangedToQueue(uint8_t dataKey);
 
     public:
-        void init();
+        void init(DataHolder* data);
         void start(int maxQueueSize);
         void stop();
         void registerDataChangeTask(DataChangedCallback* callback);
         void registerTimerToUpdateLastOnline();
 
         void storeInt(const char* key, int value);
+        void storeDouble(const char* key, double value);
         void storeBool(const char* key, bool value);
-        void saveField(DataItem dataItem);
+        void storePowerConsumption(double value);
         void updateTimaStamp();
         
-        static void setDataParsingCallback(DataParsingCallback callback);
+        // static void setDataParsingCallback(DataParsingCallback callback);
     
 };

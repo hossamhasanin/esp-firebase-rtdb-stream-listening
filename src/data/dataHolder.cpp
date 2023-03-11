@@ -3,100 +3,143 @@
 #include <string.h>
 #include <Arduino.h>
 
-DataItem DataHolder::parseDataFromKeyValue(int key, uint8_t value) {
-    // convert key to int
-    // int keyInt = key;
-    DataItem changedDataItem;
+// DataItem DataHolder::parseDataFromKeyValue(int key, uint8_t value) {
+//     // convert key to int
+//     // int keyInt = key;
+//     DataItem changedDataItem;
     
-    // compare the key with 0
-    // if (keyInt == temprature) {
-    //     // parse the value to int
-    //     setIfChanged(temprature, value, &changedDataItem);
-    // } else if (keyInt == switch1) {
+//     // compare the key with 0
+//     // if (keyInt == temprature) {
+//     //     // parse the value to int
+//     //     setIfChanged(temprature, value, &changedDataItem);
+//     // } else if (keyInt == switch1) {
 
-    //     setIfChanged(switch1, value, &changedDataItem);
-    // } else {
-    //     Serial.println("Unknown key "+String(key));
-    // }
+//     //     setIfChanged(switch1, value, &changedDataItem);
+//     // } else {
+//     //     Serial.println("Unknown key "+String(key));
+//     // }
     
-    setIfChanged(key, value, &changedDataItem);
+//     setIfChanged(key, value, &changedDataItem);
 
-    return changedDataItem;
-}
+//     return changedDataItem;
+// }
 
-void DataHolder::setIfChanged(int key , uint8_t valueByte , DataItem* changedDataItem) {
+// void DataHolder::setIfChanged(int key , uint8_t valueByte , DataItem* changedDataItem) {
     
-    if (valueByte == get(key)) {
-        changedDataItem->key = -1;
-        changedDataItem->value = -1;
-        return;
-    }
+//     if (valueByte == get(key)) {
+//         changedDataItem->key = -1;
+//         changedDataItem->value = -1;
+//         return;
+//     }
 
-    set(key, valueByte);
-    changedDataItem->key = key;
-    changedDataItem->value = get(key);
-}
+//     set(key, valueByte);
+//     changedDataItem->key = key;
+//     changedDataItem->value = get(key);
+// }
 
-uint8_t DataHolder::get(int key) {
-    if (key == doorState){
-        return _data[DOOR_STATE_INDEX];
-    } else if (key == temp){
-        return _data[TEMP_INDEX];
-    } else if (key == led1){
-        return _data[LED1_INDEX];
-    } else if (key == electri){
-        return _data[ELECTRI_INDEX];
-    } else if (key == rgblState){
-        return _data[RGBL_STATE_INDEX];
-    } else if (key == gasLeakAlarm){
-        return _data[GAS_LEAK_ALARM_INDEX];
-    } else if (key == numOfPeople){
-        return _data[NUM_OF_PEOPLE_INDEX];
-    } else if (key == powerConsumption){
-        return _data[POWER_CONSUMPTION_INDEX];
-    } else if (key == passwordWrongAlarm){
-        return _data[PASSWORD_WRONG_ALARM_INDEX];
+// uint8_t DataHolder::get(int key) {
+//     if (key == doorStateId){
+//         return doorState;
+//     } else if (key == tempId){
+//         return temp;
+//     } else if (key == led1Id){
+//         return led1;
+//     } else if (key == electriId){
+//         return electriId;
+//     } else if (key == rgblStateId){
+//         return rgblState;
+//     } else if (key == gasLeakAlarmId){
+//         return gasLeakAlarm;
+//     } else if (key == numOfPeopleId){
+//         return numOfPeople;
+//     } else if (key == powerConsumptionId){
+//         return powerConsumption;
+//     } else if (key == passwordWrongAlarmId){
+//         return passwordWrongAlarm;
+//     } else {
+//         throw "Unknown key";
+//     }
+// }
+bool DataHolder::setByteData(uint8_t key, uint8_t value) {
+    if (key == tempId){
+        if (temp == value){
+            return false;
+        }
+        temp = value;
+        return true;
+    } else if (key == numOfPeopleId){
+        if (numOfPeople == value){
+            return false;
+        }
+        numOfPeople = value;
+        return true;
     } else {
         throw "Unknown key";
     }
 }
 
-DataItem DataHolder::getDataItem(int key) {
-    DataItem dataItem;
-    dataItem.key = key;
-    dataItem.value = get(key);
-    return dataItem;
-}
-
-void DataHolder::set(int key , uint8_t value) {
-    if (key == doorState){
-        _data[DOOR_STATE_INDEX] = value;
-        Serial.println("saved doorState to memory: "+String(value));
-    } else if (key == temp){
-        _data[TEMP_INDEX] = value;
-        Serial.println("saved temp to memory: "+String(value));
-    } else if (key == led1){
-        _data[LED1_INDEX] = value;
-        Serial.println("saved led1 to memory: "+String(value));
-    } else if (key == electri){
-        _data[ELECTRI_INDEX] = value;
-        Serial.println("saved electri to memory: "+String(value));
-    } else if (key == rgblState){
-        _data[RGBL_STATE_INDEX] = value;
-        Serial.println("saved rgblState to memory: "+String(value));
-    } else if (key == gasLeakAlarm){
-        _data[GAS_LEAK_ALARM_INDEX] = value;
-        Serial.println("saved gasLeakAlarm to memory: "+String(value));
-    } else if (key == numOfPeople){
-        _data[NUM_OF_PEOPLE_INDEX] = value;
-        Serial.println("saved numOfPeople to memory: "+String(value));
-    } else if (key == powerConsumption){
-        _data[POWER_CONSUMPTION_INDEX] = value;
-        Serial.println("saved powerConsumption to memory: "+String(value));
-    } else if (key == passwordWrongAlarm){
-        _data[PASSWORD_WRONG_ALARM_INDEX] = value;
-        Serial.println("saved passwordWrongAlarm to memory: "+String(value));
+bool DataHolder::setBoolData(uint8_t key, bool value) {
+    if (key == doorStateId){
+        if (doorState == value){
+            return false;
+        }
+        doorState = value;
+        return true;
+    } else if (key == led1Id){
+        if (led1 == value){
+            return false;
+        }
+        led1 = value;
+        return true;
+    } else if (key == electriId){
+        if (electri == value){
+            return false;
+        }
+        electri = value;
+        return true;
+    } else if (key == rgblStateId){
+        if (rgblState == value){
+            return false;
+        }
+        rgblState = value;
+        return true;
+    } else if (key == gasLeakAlarmId){
+        if (gasLeakAlarm == value){
+            return false;
+        }
+        gasLeakAlarm = value;
+        return true;
+    } else if (key == passwordWrongAlarmId){
+        if (passwordWrongAlarm == value){
+            return false;
+        }
+        passwordWrongAlarm = value;
+        return true;
     } else {
         throw "Unknown key";
+    }
+}
+
+bool DataHolder::setDoubleData(uint8_t key, double value) {
+    if (key == powerConsumptionId){
+        if (powerConsumption == value){
+            return false;
+        }
+        powerConsumption = value;
+        return true;
+    } else {
+        throw "Unknown key";
+    }
+}
+
+uint8_t DataHolder::getByteData(uint8_t key) {
+    if (key == led1Id){
+        return led1;
+    } else if (key == electriId){
+        return electri;
+    } else if (key == rgblStateId){
+        return rgblState;
+    } else {
+        throw "Un supported get key "+String(key);
     }
 }

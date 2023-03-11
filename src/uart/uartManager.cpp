@@ -2,6 +2,7 @@
 
 QueueHandle_t UartManager::uart0_queue;
 QueueHandle_t UartManager::dataChangedQueue;
+DataHolder* UartManager::dataHolder = nullptr;
 
 static void uart_event_task(void *pvParameters)
 {
@@ -9,6 +10,7 @@ static void uart_event_task(void *pvParameters)
     size_t buffered_size;
     uint8_t* dtmp = (uint8_t*) malloc(RD_BUF_SIZE);
     ReceivedData data;
+    char powerConsumptionBuffer[4];
     for(;;) {
         //Waiting for UART event.
         if(xQueueReceive(UartManager::uart0_queue, (void * )&event, (TickType_t)portMAX_DELAY)) {
@@ -22,17 +24,7 @@ static void uart_event_task(void *pvParameters)
                 case UART_DATA:
                     Serial.printf("data, len: %d;\n", event.size);
                     uart_read_bytes(EX_UART_NUM, dtmp, event.size, portMAX_DELAY);
-                    if (!data.gotKey){
-                        data.key = atoi((char*)dtmp);
-                        data.gotKey = true;
-                    } else {
-                        data.value = atoi((char*)dtmp);
-                        data.gotKey = false;
-                        DataItem dataItem;
-                        dataItem.key = data.key;
-                        dataItem.value = data.value;
-                        UartManager::notifyDataChanged(dataItem);
-                    }
+                    UartManager::parseReceivedData(&data, dtmp , powerConsumptionBuffer);
                     // cast dtmp int print dtmp to console using printf
                     Serial.printf("uart[%d] read: %s\n", EX_UART_NUM, (char*)dtmp);
                     uart_write_bytes(EX_UART_NUM, (const char*) dtmp, event.size);
@@ -78,9 +70,56 @@ static void uart_event_task(void *pvParameters)
     vTaskDelete(NULL);
 }
 
-void UartManager::initUart(){
+void UartManager::parseReceivedData(ReceivedData* receivedData, uint8_t* data , char* powerConsumptionBuffer){
+    if (!receivedData->gotKey){
+        receivedData->key = atoi((char*)data);
+        receivedData->gotKey = true;
+    } else {
+        if (receivedData->key == powerConsumptionId){
+            // check if character (*) is received
+            if (*data == '*'){
+                receivedData->gotKey = false;
+                double powerConsumption = atof(powerConsumptionBuffer)/1000;
+                Serial.print("powerConsumption done: ");
+                Serial.println(powerConsumption);
+                dataHolder->setPowerConsumption(powerConsumption);
+                UartManager::notifyDataChanged(receivedData->key);
+                bzero(powerConsumptionBuffer, 4);
+                return;
+            }
+            // concatinate (char* data) in recieving the power consumption number
+            strcat(powerConsumptionBuffer, (char*)data);
+            Serial.print("powerConsumptionBuffer: ");
+            Serial.println(powerConsumptionBuffer);
+        } else {
+            receivedData->value = atoi((char*)data);
+            receivedData->gotKey = false;
+            if (receivedData->key == tempId){
+                dataHolder->setTemp(receivedData->value);
+            } else if (receivedData->key == led1Id){
+                dataHolder->setLed1(receivedData->value);
+            } else if (receivedData->key == electriId){
+                dataHolder->setElectri(receivedData->value);
+            } else if (receivedData->key == passwordWrongAlarmId){
+                dataHolder->setPasswordWrongAlarm(receivedData->value);
+            } else if (receivedData->key == numOfPeopleId){
+                dataHolder->setNumOfPeople(receivedData->value);
+            } else if (receivedData->key == gasLeakAlarmId) {
+                dataHolder->setGasLeakAlarm(receivedData->value);
+            } else if (receivedData->key == rgblStateId) {
+                dataHolder->setRgblState(receivedData->value);
+            } else if (receivedData->key == doorStateId) {
+                dataHolder->setDoorState(receivedData->value);
+            }
+            UartManager::notifyDataChanged(receivedData->key);
+        }
+    }
+}
 
-    dataChangedQueue = xQueueCreate(10, sizeof(DataItem));
+void UartManager::initUart(DataHolder* dataHolder){
+    UartManager::dataHolder = dataHolder;
+
+    dataChangedQueue = xQueueCreate(10, sizeof(uint8_t));
 
     uart_config_t uart_config = {
         .baud_rate = 9600,
@@ -101,21 +140,20 @@ void UartManager::initUart(){
 }
 
 
-void UartManager::notifyDataChanged(DataItem dataItem){
-    if (xQueueSend(dataChangedQueue, (void *) &dataItem, (TickType_t) 2) != pdPASS){
+void UartManager::notifyDataChanged(uint8_t dataKey){
+    if (xQueueSend(dataChangedQueue, (void *) &dataKey, (TickType_t) 2) != pdPASS){
         Serial.println((const char *)FPSTR("stream queue full"));
       }
 }
 
 void UartManager::onDataChangedListner(DataChangedCallback* dataChangedCallback){
-    DataItem dataChanged;
-    if (xQueueReceive(dataChangedQueue, &dataChanged, (TickType_t) 2) == pdPASS){
+    uint8_t dataKey;
+    if (xQueueReceive(dataChangedQueue, &dataKey, (TickType_t) 2) == pdPASS){
         // if (dataChanged.key != NULL) {
         // Do something here
-        Serial.println((const char *)FPSTR("Some data has been changed"));
-        Serial.println(dataChanged.key);
-        Serial.println(dataChanged.value);
-        (*dataChangedCallback)(dataChanged);
+        Serial.printf((const char *)FPSTR("Some data has been changed"));
+        Serial.println(dataKey);
+        (*dataChangedCallback)(dataKey);
         // }
     }
 }
@@ -131,13 +169,13 @@ void UartManager::registerDataChangedCallback(DataChangedCallback* dataChangedCa
     }, "dataChangedCallbackTask", 6048, dataChangedCallback, 12, NULL);
 }
 
-void UartManager::sendData(DataItem dataItem){
+void UartManager::sendData(uint8_t key , uint8_t value){
     char key_str[5]; // assuming the key is a signed 8-bit integer
     char value_str[4]; // assuming the value is an unsigned 8-bit integer
 
     // convert key and value to strings using sprintf
-    sprintf(key_str, "%d", dataItem.key);
-    sprintf(value_str, "%u", dataItem.value);
+    sprintf(key_str, "%d", key);
+    sprintf(value_str, "%u", value);
     uart_write_bytes(EX_UART_NUM, key_str, strlen(key_str));
     uart_write_bytes(EX_UART_NUM, value_str, strlen(value_str));
 }

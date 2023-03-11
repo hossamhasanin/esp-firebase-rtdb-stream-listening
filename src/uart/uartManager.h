@@ -25,15 +25,17 @@ struct ReceivedData {
 class UartManager {
 
     public:
-        typedef void (*DataChangedCallback)(DataItem);
+        typedef void (*DataChangedCallback)(uint8_t);
 
         static QueueHandle_t uart0_queue;
         static QueueHandle_t dataChangedQueue;
+        static DataHolder* dataHolder;
 
-        void initUart();
-        void sendData(DataItem dataItem);
+        void initUart(DataHolder* dataHolder);
+        void sendData(uint8_t key , uint8_t value);
         static void registerDataChangedCallback(DataChangedCallback* callback);
-        static void notifyDataChanged(DataItem dataItem);
+        static void notifyDataChanged(uint8_t dataKey);
+        static void parseReceivedData(ReceivedData* receivedData, uint8_t* data , char* powerConsumptionBuffer);
 
     private:
         static void onDataChangedListner(DataChangedCallback* dataChangedCallback);

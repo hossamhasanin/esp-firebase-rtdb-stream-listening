@@ -3,12 +3,14 @@
 QueueHandle_t FirebaseListener::queueFlagChangedData = NULL;
 TaskHandle_t FirebaseListener::_timerHandle = NULL;
 SemaphoreHandle_t FirebaseListener::timerSem = NULL;
+DataHolder* FirebaseListener::data = nullptr;
 
 FirebaseData FirebaseListener::stream;
 FirebaseData FirebaseListener::fbdo;
-FirebaseListener::DataParsingCallback FirebaseListener::dataParsingCallback = NULL;
+// FirebaseListener::DataParsingCallback FirebaseListener::dataParsingCallback = NULL;
 
-void FirebaseListener::init() {
+void FirebaseListener::init(DataHolder* data) {
+  FirebaseListener::data = data;
   
 //   /* Assign the api key (required) */
 //   config.api_key = API_KEY;
@@ -27,7 +29,7 @@ void FirebaseListener::init() {
 
 void FirebaseListener::start(int maxQueueSize) {
 
-  queueFlagChangedData = xQueueCreate(maxQueueSize, sizeof(DataItem));
+  queueFlagChangedData = xQueueCreate(maxQueueSize, sizeof(uint8_t));
 
   /* Initialize the library with the Firebase authen and config */
 
@@ -116,15 +118,40 @@ void FirebaseListener::streamCallback(FirebaseStream data)
     // extract the key from "/1" data path
     int key = atoi(data.dataPath().c_str() + 1);
     Serial.printf("key %d \n" , key);
-    DataItem item = FirebaseListener::dataParsingCallback(key, data.intData());    
-    Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), item.key, item.value);
-    notifyDataChangedToQueue(item);
+    bool isSet = false;
+    if (key != powerConsumptionId){
+      isSet = FirebaseListener::data->setByteData(key, data.intData());
+    } else {
+      isSet = FirebaseListener::data->setDoubleData(key, data.intData());
+    }
+    Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.intData());
+    if (isSet) {
+        notifyDataChangedToQueue(key);
+    }
+  } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_double) {
+    int key = atoi(data.dataPath().c_str() + 1);
+    Serial.printf("key %d \n" , key);
+    bool isSet = FirebaseListener::data->setDoubleData(key, data.doubleData());
+    Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.doubleData());
+    if (isSet) {
+      notifyDataChangedToQueue(key);
+    }
+  } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_float) {
+    int key = atoi(data.dataPath().c_str() + 1);
+    Serial.printf("key %d \n" , key);
+    bool isSet = FirebaseListener::data->setDoubleData(key, data.doubleData());
+    Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.doubleData());
+    if (isSet) {
+      notifyDataChangedToQueue(key);
+    }
   } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_boolean) {
     int key = atoi(data.dataPath().c_str() + 1);
     Serial.printf("key %d \n" , key);
-    DataItem item = FirebaseListener::dataParsingCallback(key, data.boolData());    
-    Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), item.key, item.value);
-    notifyDataChangedToQueue(item);
+    bool isSet = FirebaseListener::data->setBoolData(key, data.boolData());
+    Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.boolData());
+    if (isSet) {
+      notifyDataChangedToQueue(key);
+    }
   } else {
     Serial.println((const char *)FPSTR("Data type is not JSON"));
   }
@@ -140,23 +167,19 @@ void FirebaseListener::streamCallback(FirebaseStream data)
   // Just set this flag and check it status later.
 }
 
-void FirebaseListener::notifyDataChangedToQueue(DataItem item){
-  if (item.key != -1){
-      if (xQueueSend(queueFlagChangedData, (void *) &item, (TickType_t) 2) != pdPASS){
+void FirebaseListener::notifyDataChangedToQueue(uint8_t dataKey){
+  if (xQueueSend(queueFlagChangedData, (void *) &dataKey, (TickType_t) 2) != pdPASS){
         Serial.println((const char *)FPSTR("stream queue full"));
-      }
   }
 }
 
 void FirebaseListener::onDataChangedEvent(DataChangedCallback* callback) {
-  DataItem dataChanged;
-  if (xQueueReceive(queueFlagChangedData, &dataChanged, (TickType_t) 2) == pdPASS){
+  uint8_t dataKey;
+  if (xQueueReceive(queueFlagChangedData, &dataKey, (TickType_t) 2) == pdPASS){
     // if (dataChanged.key != NULL) {
       // Do something here
       Serial.println((const char *)FPSTR("Some data has been changed"));
-      Serial.println(dataChanged.key);
-      Serial.println(dataChanged.value);
-      (*callback)(dataChanged);
+      (*callback)(dataKey);
     // }
   }
 }
@@ -179,9 +202,9 @@ void FirebaseListener::registerDataChangeTask(DataChangedCallback* callback) {
   );
 }
 
-void FirebaseListener::setDataParsingCallback(DataParsingCallback callback) {
-  FirebaseListener::dataParsingCallback = callback;
-}
+// void FirebaseListener::setDataParsingCallback(DataParsingCallback callback) {
+//   FirebaseListener::dataParsingCallback = callback;
+// }
 
 bool IRAM_ATTR  FirebaseListener::timerCallback(void *param) {
   Serial.println((const char *)FPSTR("Update last online interrupt"));
@@ -266,24 +289,29 @@ void FirebaseListener::storeBool(const char* key, bool value) {
   Firebase.RTDB.setBool(&fbdo, path, value);
 }
 
-void FirebaseListener::saveField(DataItem item){
-  if (item.key == temp){
-    storeInt(String(item.key).c_str(), item.value);
-  } else if (item.key == doorState){
-    storeBool(String(item.key).c_str(), item.value);
-  } else if (item.key == led1){
-    storeBool(String(item.key).c_str(), item.value);
-  } else if (item.key == electri){
-    storeBool(String(item.key).c_str(), item.value);
-  } else if (item.key == rgblState){
-    storeBool(String(item.key).c_str(), item.value);
-  } else if (item.key == gasLeakAlarm){
-    storeBool(String(item.key).c_str(), item.value);
-  } else if (item.key == numOfPeople){
-    storeInt(String(item.key).c_str(), item.value);
-  } else if (item.key == powerConsumption){
-    storeInt(String(item.key).c_str(), item.value);
-  } else if (item.key == passwordWrongAlarm){
-    storeBool(String(item.key).c_str(), item.value);
-  }
+void FirebaseListener::storeDouble(const char* key, double value) {
+  // concatinate DATA_PATH , "/" and the key
+  char path[strlen(DATA_PATH) + strlen(key) + 2];
+  strcpy(path, DATA_PATH);
+  strcat(path, "/");
+  strcat(path, key);
+  Firebase.RTDB.setDouble(&fbdo, path, value);
 }
+
+void FirebaseListener::storePowerConsumption(double value) {
+  FirebaseJson json;
+  json.set("value", value);
+  Firebase.RTDB.pushJSON(&fbdo, POWER_CONSUMPTION_PATH, &json);
+  // concatinate path with "/timestamp"
+  char timestampPath[fbdo.dataPath().length() + fbdo.pushName().length() + strlen("/timestamp") + 2];
+  strcpy(timestampPath, fbdo.dataPath().c_str());
+  strcat(timestampPath, "/");
+  strcat(timestampPath, fbdo.pushName().c_str());
+  strcat(timestampPath, "/timestamp");
+  Firebase.RTDB.setTimestamp(&fbdo, timestampPath);
+}
+
+
+
+
+

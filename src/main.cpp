@@ -15,42 +15,59 @@
 DataHolder data;
 FirebaseListener firebaseListener;
 UartManager uartManager;
-FirebaseListener::DataChangedCallback onlineDataChangedCallback = [](DataItem dataItem) {
-    Serial.printf("\n Online data changed: key: %d, value: %d\n", dataItem.key, (int) dataItem.value);
+FirebaseListener::DataChangedCallback onlineDataChangedCallback = [](uint8_t key) {
+    Serial.printf("\n Online data changed: key: %d\n", key);
 
-    data.set(dataItem.key, dataItem.value);
 
     //TODO: here send the changed data to microcontroller using serial
-    uartManager.sendData(dataItem);
+    uartManager.sendData(key , data.getByteData(key));
 };
 WebServer::OnOfflineDataChangedCallback offlineDataChangedCallback = [](int key, int value) {
     Serial.printf("\n Offline data changed: key: %d, value: %d", key, value);
 
-    data.set(key, value);
+    // data.set(key, value);
 
 };
 
-UartManager::DataChangedCallback uartDataChangedCallback = [](DataItem dataItem) {
-    Serial.printf("\n uart data changed: key: %d, value: %d\n", dataItem.key, (int) dataItem.value);
-
-    data.set(dataItem.key, dataItem.value);
+UartManager::DataChangedCallback uartDataChangedCallback = [](uint8_t key) {
+    Serial.printf("\nUart data changed: key: %d\n", key);
 
     //here send the changed data to firbase
-    firebaseListener.saveField(dataItem);
+    if (key == tempId){
+      firebaseListener.storeInt(String(key).c_str() , data.getTemp());
+    } else if (key == doorStateId){
+      firebaseListener.storeBool(String(key).c_str() , data.getDoorState());
+    } else if (key == led1Id){
+      firebaseListener.storeBool(String(key).c_str() , data.getLed1());
+    } else if (key == electriId){
+      firebaseListener.storeBool(String(key).c_str() , data.getElectri());
+    } else if (key == rgblStateId){
+      firebaseListener.storeBool(String(key).c_str() , data.getRgblState());
+    } else if (key == gasLeakAlarmId){
+      firebaseListener.storeBool(String(key).c_str() , data.getGasLeakAlarm());
+    } else if (key == numOfPeopleId){
+      firebaseListener.storeInt(String(key).c_str() , data.getNumOfPeople());
+    } else if (key == passwordWrongAlarmId){
+      firebaseListener.storeBool(String(key).c_str() , data.getPasswordWrongAlarm());
+    } else if (key == powerConsumptionId){
+      Serial.printf("powerConsumption is to store: %f\n", data.getPowerConsumption());
+      
+      firebaseListener.storePowerConsumption(data.getPowerConsumption());
+    }
     
 };
 
 GetDevicesAsJsonString getDevicesAsJsonString = []() -> const char* {
     std::string devices = "{\"devices\":[/s]}";
 
-    for (int i = 0; i < DATA_FIELDS_COUNT; i++) {
-        char device[32];
-        sprintf(device, "%d_%d", i, data.get(i));
-        if (i != DATA_FIELDS_COUNT - 1) {
-            strcat(device, ",/s");
-        }
-        devices.replace(devices.find("/s"), 2, device);
-    }
+    // for (int i = 0; i < DATA_FIELDS_COUNT; i++) {
+    //     char device[32];
+    //     sprintf(device, "%d_%d", i, data.getDataItem(i).key);
+    //     if (i != DATA_FIELDS_COUNT - 1) {
+    //         strcat(device, ",/s");
+    //     }
+    //     devices.replace(devices.find("/s"), 2, device);
+    // }
 
     return devices.c_str();
 };
@@ -68,15 +85,15 @@ GetDevicesAsJsonString getDevicesAsJsonString = []() -> const char* {
 // }
 
 void sendDevicesStateToFirebase(){
-    firebaseListener.saveField(data.getDataItem(doorState));
-    firebaseListener.saveField(data.getDataItem(temp));
-    firebaseListener.saveField(data.getDataItem(led1));
-    firebaseListener.saveField(data.getDataItem(electri));
-    firebaseListener.saveField(data.getDataItem(rgblState));
-    firebaseListener.saveField(data.getDataItem(gasLeakAlarm));
-    firebaseListener.saveField(data.getDataItem(numOfPeople));
-    firebaseListener.saveField(data.getDataItem(passwordWrongAlarm));
-    firebaseListener.saveField(data.getDataItem(powerConsumption));
+    firebaseListener.storeBool(String(tempId).c_str() , data.getTemp());
+    firebaseListener.storeBool(String(doorStateId).c_str() , data.getDoorState());
+    firebaseListener.storeBool(String(led1Id).c_str() , data.getLed1());
+    firebaseListener.storeBool(String(electriId).c_str() , data.getElectri());
+    firebaseListener.storeBool(String(rgblStateId).c_str() , data.getRgblState());
+    firebaseListener.storeBool(String(gasLeakAlarmId).c_str() , data.getGasLeakAlarm());
+    firebaseListener.storeInt(String(numOfPeopleId).c_str() , data.getNumOfPeople());
+    firebaseListener.storeBool(String(passwordWrongAlarmId).c_str() , data.getPasswordWrongAlarm());
+    firebaseListener.storeDouble(String(powerConsumptionId).c_str() , data.getPowerConsumption());
 }
 
 void startFirebaseTask(void* parameter){
@@ -89,7 +106,7 @@ void startFirebaseTask(void* parameter){
           // ESP_ERROR_CHECK(WebServer::stopWebServer());  
           WebServer::stopWebSocket();
             
-          firebaseListener.init();
+          firebaseListener.init(&data);
           
           firebaseListener.start(DATA_FIELDS_COUNT);
           firebaseListener.registerDataChangeTask(&onlineDataChangedCallback);
@@ -126,10 +143,10 @@ void setup() {
     delay(300);
   }
 
-  firebaseListener.init();        
-  FirebaseListener::setDataParsingCallback([](int key, uint8_t value) -> DataItem {
-    return data.parseDataFromKeyValue(key, value);
-  });
+  firebaseListener.init(&data);        
+  // FirebaseListener::setDataParsingCallback([](int key, uint8_t value) -> DataItem {
+  //   return data.parseDataFromKeyValue(key, value);
+  // });
   firebaseListener.start(DATA_FIELDS_COUNT);
   firebaseListener.registerDataChangeTask(&onlineDataChangedCallback);
   // sendDevicesStateToFirebase();
@@ -178,7 +195,7 @@ void setup() {
   //   }
   // );
 
-  uartManager.initUart();
+  uartManager.initUart(&data);
   uartManager.registerDataChangedCallback(&uartDataChangedCallback);
   // vTaskDelete(NULL);
 }
