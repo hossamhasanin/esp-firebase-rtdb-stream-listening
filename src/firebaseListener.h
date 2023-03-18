@@ -52,18 +52,21 @@ class FirebaseListener{
         static void onDataChangedEvent(DataChangedCallback* callback);
         static void notifyDataChangedToQueue(uint8_t dataKey);
 
-    public:
         void init(DataHolder* data);
         void start(int maxQueueSize);
-        void stop();
         void registerDataChangeTask(DataChangedCallback* callback);
         void registerTimerToUpdateLastOnline();
+
+    public:
+        void stop();
 
         void storeInt(const char* key, int value);
         void storeDouble(const char* key, double value);
         void storeBool(const char* key, bool value);
         void storePowerConsumption(double value);
         void updateTimaStamp();
+
+        void setupFirebaseFactory(DataHolder* dataHolder , DataChangedCallback* dataChangedCallback , int dataFildsCount);
         
         // static void setDataParsingCallback(DataParsingCallback callback);
     

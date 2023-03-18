@@ -3,6 +3,7 @@
 QueueHandle_t UartManager::uart0_queue;
 QueueHandle_t UartManager::dataChangedQueue;
 DataHolder* UartManager::dataHolder = nullptr;
+SemaphoreHandle_t UartManager::timerSem = NULL;
 
 static void uart_event_task(void *pvParameters)
 {
@@ -27,7 +28,7 @@ static void uart_event_task(void *pvParameters)
                     UartManager::parseReceivedData(&data, dtmp , powerConsumptionBuffer);
                     // cast dtmp int print dtmp to console using printf
                     Serial.printf("uart[%d] read: %s\n", EX_UART_NUM, (char*)dtmp);
-                    uart_write_bytes(EX_UART_NUM, (const char*) dtmp, event.size);
+                    // uart_write_bytes(EX_UART_NUM, (const char*) dtmp, event.size);
                     break;
                 //Event of HW FIFO overflow detected
                 case UART_FIFO_OVF:
@@ -134,6 +135,13 @@ void UartManager::parseReceivedData(ReceivedData* receivedData, uint8_t* data , 
     }
 }
 
+void UartManager::setupUartFactory(DataHolder* dataHolder , DataChangedCallback* dataChangedCallback){
+    this->initUart(dataHolder);
+    this->registerDataChangedCallback(dataChangedCallback);
+    this->registerTimerToGetPowerConsumptionAndTemp();
+    this->notifiyMicroControllerToGetPowerConsump();
+}
+
 void UartManager::initUart(DataHolder* dataHolder){
     UartManager::dataHolder = dataHolder;
 
@@ -196,4 +204,52 @@ void UartManager::sendData(uint8_t key , uint8_t value){
     sprintf(value_str, "%u", value);
     uart_write_bytes(EX_UART_NUM, key_str, strlen(key_str));
     uart_write_bytes(EX_UART_NUM, value_str, strlen(value_str));
+}
+
+bool IRAM_ATTR UartManager::timerCallback(void* arg){
+    Serial.println((const char *)FPSTR("Get power consumption from uart interrupt"));
+
+    BaseType_t high_task_awoken = pdFALSE;
+    xSemaphoreGiveFromISR(timerSem, &high_task_awoken);
+    return (high_task_awoken == pdTRUE);
+}
+
+void UartManager::registerTimerToGetPowerConsumptionAndTemp(){
+    timerSem = xSemaphoreCreateBinary();
+    if (timerSem == NULL) {
+        printf("Binary semaphore can not be created");
+    }
+    timer_config_t config = {
+        .alarm_en = TIMER_ALARM_EN,
+        .counter_en = TIMER_PAUSE,
+        .counter_dir = TIMER_COUNT_UP,
+        .auto_reload = TIMER_AUTORELOAD_EN,
+        .divider = TIMER_DIVIDER
+    };
+    timer_init(TIMER_GROUP_0, TIMER_1, &config);
+    timer_set_counter_value(TIMER_GROUP_0, TIMER_1, 0);
+    // set alarm to 30 seconds
+    timer_set_alarm_value(TIMER_GROUP_0, TIMER_1, 60000000);
+
+    timer_enable_intr(TIMER_GROUP_0, TIMER_1);
+    timer_isr_callback_add(TIMER_GROUP_0, TIMER_1, UartManager::timerCallback, NULL, 0);
+    timer_start(TIMER_GROUP_0, TIMER_1);
+}
+
+void UartManager::notifiyMicroControllerToGetPowerConsump(){
+    if (timerSem != NULL){
+        // create a task to get power consumption
+        xTaskCreate([](void *param) {
+            while (true) {
+                if (xSemaphoreTake(timerSem, portMAX_DELAY) == pdPASS) {
+                    Serial.println((const char *)FPSTR("Sending get command to mc"));
+                    char key_str[2]; // assuming the key is a signed 8-bit integer
+                    // convert key and value to strings using sprintf
+                    sprintf(key_str, "%d", powerConsumptionId);
+                    uart_write_bytes(EX_UART_NUM, key_str, strlen(key_str));
+                    Serial.println((const char *)FPSTR("Sent get command to mc"));
+                }
+            }
+        }, "getPowerConsumptionTask", 2048, NULL, 12, NULL);
+    }
 }

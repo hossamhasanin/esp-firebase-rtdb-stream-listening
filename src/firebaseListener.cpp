@@ -9,6 +9,13 @@ FirebaseData FirebaseListener::stream;
 FirebaseData FirebaseListener::fbdo;
 // FirebaseListener::DataParsingCallback FirebaseListener::dataParsingCallback = NULL;
 
+void FirebaseListener::setupFirebaseFactory(DataHolder* dataHolder , DataChangedCallback* dataChangedCallback , int dataFildsCount) {
+  this->init(dataHolder);
+  this->start(dataFildsCount);
+  this->registerDataChangeTask(dataChangedCallback);
+  this->registerTimerToUpdateLastOnline();
+}
+
 void FirebaseListener::init(DataHolder* data) {
   FirebaseListener::data = data;
   

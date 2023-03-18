@@ -106,11 +106,8 @@ void startFirebaseTask(void* parameter){
           // ESP_ERROR_CHECK(WebServer::stopWebServer());  
           WebServer::stopWebSocket();
             
-          firebaseListener.init(&data);
-          
-          firebaseListener.start(DATA_FIELDS_COUNT);
-          firebaseListener.registerDataChangeTask(&onlineDataChangedCallback);
-          firebaseListener.registerTimerToUpdateLastOnline();
+          firebaseListener.setupFirebaseFactory(&data , &onlineDataChangedCallback , DATA_FIELDS_COUNT);
+
           sendDevicesStateToFirebase();
         } else {
           Serial.println("Wifi disconnected");
@@ -134,8 +131,17 @@ void setup() {
   esp_task_wdt_init(30, false);
 
   WiFi.mode(WIFI_STA);
+  // Home network
   WiFi.config(IPAddress(192,168,1,222), IPAddress(192,168,1,1), IPAddress(255,255,255,0) , IPAddress(192,168,1,1));
+  // The G
+  // WiFi.config(IPAddress(192,168,232,222), IPAddress(192,168,232,99), IPAddress(255,255,255,0) , IPAddress(192,168,232,99));
+  // Saba wifi
+  // WiFi.config(IPAddress(192,168,6,222), IPAddress(192,168,6,154), IPAddress(255,255,255,0) , IPAddress(192,168,6,154));
+  // Home network
   WiFi.begin("SilliconVally" , "Qwerty@013008$8720$hgfa$annie$olaf$2003$@");
+  // The G
+  // WiFi.begin("The G" , "123456789hg");
+
 
   while (WiFi.status() != WL_CONNECTED)
   {
@@ -143,19 +149,8 @@ void setup() {
     delay(300);
   }
 
-  firebaseListener.init(&data);        
-  // FirebaseListener::setDataParsingCallback([](int key, uint8_t value) -> DataItem {
-  //   return data.parseDataFromKeyValue(key, value);
-  // });
-  firebaseListener.start(DATA_FIELDS_COUNT);
-  firebaseListener.registerDataChangeTask(&onlineDataChangedCallback);
-  // sendDevicesStateToFirebase();
+  firebaseListener.setupFirebaseFactory(&data , &onlineDataChangedCallback , DATA_FIELDS_COUNT);
 
-
-  // remove comment
-  // FirebaseListener::setDataParsingCallback([](int key, uint8_t value) -> DataItem {
-  //           return data.parseDataFromKeyValue(key, value);
-  // });
 
   // remove comment
   // create task to handle firebase
@@ -175,28 +170,7 @@ void setup() {
 
 
 
-
-  // WiFiManager::setupWifi([](){
-  //     Serial.println("Connected to wifi");
-        
-  //       firebaseListener.init();
-  //       FirebaseListener::setDataParsingCallback([](int key, uint8_t value) -> DataItem {
-  //         return data.parseDataFromKeyValue(key, value);
-  //       });
-  //       firebaseListener.start(DATA_FIELDS_COUNT);
-  //       firebaseListener.registerDataChangeTask(&dataChangedCallback);
-
-  //     // sendDevicesStateToFirebase();
-  //   }, [](){
-  //       Serial.println("Lost wifi connection");
-
-  //       // firebaseListener.stop();
-  //       // WebServer::startWebServer(WiFiManager::startStationMode);
-  //   }
-  // );
-
-  uartManager.initUart(&data);
-  uartManager.registerDataChangedCallback(&uartDataChangedCallback);
+  uartManager.setupUartFactory(&data, &uartDataChangedCallback);
   // vTaskDelete(NULL);
 }
 
@@ -204,10 +178,6 @@ void loop() {
   // put your main code here, to run repeatedly:
   
   // remove comment
-  // firebaseListener.updateTimaStamp();
+  firebaseListener.updateTimaStamp();
 
-  // char* test_str = "Hi\n";
-  // uart_write_bytes(EX_UART_NUM, (const char*)test_str, strlen(test_str));
-  // Serial.println("Sent to uart");
-  // delay(1000);
 }
