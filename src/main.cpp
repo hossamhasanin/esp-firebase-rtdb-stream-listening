@@ -32,28 +32,28 @@ WebServer::OnOfflineDataChangedCallback offlineDataChangedCallback = [](int key,
 UartManager::DataChangedCallback uartDataChangedCallback = [](uint8_t key) {
     Serial.printf("\nUart data changed: key: %d\n", key);
 
-    //here send the changed data to firbase
-    if (key == tempId){
-      firebaseListener.storeInt(String(key).c_str() , data.getTemp());
-    } else if (key == doorStateId){
-      firebaseListener.storeBool(String(key).c_str() , data.getDoorState());
-    } else if (key == led1Id){
-      firebaseListener.storeBool(String(key).c_str() , data.getLed1());
-    } else if (key == electriId){
-      firebaseListener.storeBool(String(key).c_str() , data.getElectri());
-    } else if (key == rgblStateId){
-      firebaseListener.storeBool(String(key).c_str() , data.getRgblState());
-    } else if (key == gasLeakAlarmId){
-      firebaseListener.storeBool(String(key).c_str() , data.getGasLeakAlarm());
-    } else if (key == numOfPeopleId){
-      firebaseListener.storeInt(String(key).c_str() , data.getNumOfPeople());
-    } else if (key == passwordWrongAlarmId){
-      firebaseListener.storeBool(String(key).c_str() , data.getPasswordWrongAlarm());
-    } else if (key == powerConsumptionId){
-      Serial.printf("powerConsumption is to store: %f\n", data.getPowerConsumption());
+    // //here send the changed data to firbase
+    // if (key == tempId){
+    //   firebaseListener.storeInt(String(key).c_str() , data.getTemp());
+    // } else if (key == doorStateId){
+    //   firebaseListener.storeBool(String(key).c_str() , data.getDoorState());
+    // } else if (key == led1Id){
+    //   firebaseListener.storeBool(String(key).c_str() , data.getLed1());
+    // } else if (key == electriId){
+    //   firebaseListener.storeBool(String(key).c_str() , data.getElectri());
+    // } else if (key == rgblStateId){
+    //   firebaseListener.storeBool(String(key).c_str() , data.getRgblState());
+    // } else if (key == gasLeakAlarmId){
+    //   firebaseListener.storeBool(String(key).c_str() , data.getGasLeakAlarm());
+    // } else if (key == numOfPeopleId){
+    //   firebaseListener.storeInt(String(key).c_str() , data.getNumOfPeople());
+    // } else if (key == passwordWrongAlarmId){
+    //   firebaseListener.storeBool(String(key).c_str() , data.getPasswordWrongAlarm());
+    // } else if (key == powerConsumptionId){
+    //   Serial.printf("powerConsumption is to store: %f\n", data.getPowerConsumption());
       
-      firebaseListener.storePowerConsumption(data.getPowerConsumption());
-    }
+    //   firebaseListener.storePowerConsumption(data.getPowerConsumption());
+    // }
     
 };
 
@@ -128,28 +128,28 @@ void setup() {
   // remove comment
   // NvsManager::initNvsMemory();
 
-  esp_task_wdt_init(30, false);
+  esp_task_wdt_init(60, false);
 
-  WiFi.mode(WIFI_STA);
+  // WiFi.mode(WIFI_STA);
   // Home network
-  WiFi.config(IPAddress(192,168,1,222), IPAddress(192,168,1,1), IPAddress(255,255,255,0) , IPAddress(192,168,1,1));
+  // WiFi.config(IPAddress(192,168,1,222), IPAddress(192,168,1,1), IPAddress(255,255,255,0) , IPAddress(192,168,1,1));
   // The G
   // WiFi.config(IPAddress(192,168,232,222), IPAddress(192,168,232,99), IPAddress(255,255,255,0) , IPAddress(192,168,232,99));
   // Saba wifi
   // WiFi.config(IPAddress(192,168,6,222), IPAddress(192,168,6,154), IPAddress(255,255,255,0) , IPAddress(192,168,6,154));
   // Home network
-  WiFi.begin("SilliconVally" , "Qwerty@013008$8720$hgfa$annie$olaf$2003$@");
+  // WiFi.begin("SilliconVally" , "Qwerty@013008$8720$hgfa$annie$olaf$2003$@");
   // The G
   // WiFi.begin("The G" , "123456789hg");
 
 
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    Serial.print(".");
-    delay(300);
-  }
+  // while (WiFi.status() != WL_CONNECTED)
+  // {
+  //   Serial.print(".");
+  //   delay(300);
+  // }
 
-  firebaseListener.setupFirebaseFactory(&data , &onlineDataChangedCallback , DATA_FIELDS_COUNT);
+  // firebaseListener.setupFirebaseFactory(&data , &onlineDataChangedCallback , DATA_FIELDS_COUNT);
 
 
   // remove comment
@@ -171,13 +171,13 @@ void setup() {
 
 
   uartManager.setupUartFactory(&data, &uartDataChangedCallback);
-  // vTaskDelete(NULL);
+  vTaskDelete(NULL);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
   
   // remove comment
-  firebaseListener.updateTimaStamp();
+  // firebaseListener.updateTimaStamp();
 
 }

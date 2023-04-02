@@ -13,6 +13,7 @@ static void uart_event_task(void *pvParameters)
     ReceivedData data;
     char powerConsumptionBuffer[4];
     for(;;) {
+        // Serial.println("Uart running");
         //Waiting for UART event.
         if(xQueueReceive(UartManager::uart0_queue, (void * )&event, (TickType_t)portMAX_DELAY)) {
             bzero(dtmp, RD_BUF_SIZE);
@@ -87,29 +88,25 @@ void UartManager::parseReceivedData(ReceivedData* receivedData, uint8_t* data , 
     if (!receivedData->gotKey){
         receivedData->key = atoi((char*)data);
         if (!DataHolder::isKeyValid(receivedData->key)){
-            Serial.println("uart key is not valid");
+            Serial.print("uart key is not valid ");
+            Serial.println(receivedData->key);
             return;
         }
         receivedData->gotKey = true;
     } else {
         if (receivedData->key == powerConsumptionId){
-            // check if character (*) is received
-            if (*data == '*'){
-                receivedData->gotKey = false;
-                // reverse the powerConsumptionBuffer
-                reverseString(powerConsumptionBuffer);
-                double powerConsumption = atof(powerConsumptionBuffer)/1000;
-                Serial.print("powerConsumption done: ");
-                Serial.println(powerConsumption);
-                dataHolder->setPowerConsumption(powerConsumption);
-                UartManager::notifyDataChanged(receivedData->key);
-                bzero(powerConsumptionBuffer, 4);
-                return;
-            }
+            receivedData->gotKey = false;
+            // reverse the powerConsumptionBuffer
+            // reverseString(powerConsumptionBuffer);
+            double powerConsumption = atof((char *)data)/1000;
+            Serial.print("powerConsumption recieved: ");
+            Serial.println(powerConsumption);
+            dataHolder->setPowerConsumption(powerConsumption);
+            UartManager::notifyDataChanged(receivedData->key);
             // concatinate (char* data) in recieving the power consumption number
-            strcat(powerConsumptionBuffer, (char*)data);
-            Serial.print("powerConsumptionBuffer: ");
-            Serial.println(powerConsumptionBuffer);
+            // strcat(powerConsumptionBuffer, (char*)data);
+            // Serial.print("powerConsumptionBuffer: ");
+            // Serial.println(powerConsumptionBuffer);
         } else {
             receivedData->value = atoi((char*)data);
             receivedData->gotKey = false;
@@ -162,7 +159,7 @@ void UartManager::initUart(DataHolder* dataHolder){
     uart_set_pin(EX_UART_NUM, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 
     //Create a task to handler UART event from ISR
-    xTaskCreate(uart_event_task, "uart_event_task", 2048, NULL, 12, NULL);
+    xTaskCreate(uart_event_task, "uart_event_task", 2048, NULL, 1, NULL);
 }
 
 
@@ -229,7 +226,7 @@ void UartManager::registerTimerToGetPowerConsumptionAndTemp(){
     timer_init(TIMER_GROUP_0, TIMER_1, &config);
     timer_set_counter_value(TIMER_GROUP_0, TIMER_1, 0);
     // set alarm to 30 seconds
-    timer_set_alarm_value(TIMER_GROUP_0, TIMER_1, 60000000);
+    timer_set_alarm_value(TIMER_GROUP_0, TIMER_1, 30000000);
 
     timer_enable_intr(TIMER_GROUP_0, TIMER_1);
     timer_isr_callback_add(TIMER_GROUP_0, TIMER_1, UartManager::timerCallback, NULL, 0);
@@ -245,11 +242,11 @@ void UartManager::notifiyMicroControllerToGetPowerConsump(){
                     Serial.println((const char *)FPSTR("Sending get command to mc"));
                     char key_str[2]; // assuming the key is a signed 8-bit integer
                     // convert key and value to strings using sprintf
-                    sprintf(key_str, "%d", powerConsumptionId);
+                    sprintf(key_str, "%d", tempId);
                     uart_write_bytes(EX_UART_NUM, key_str, strlen(key_str));
                     Serial.println((const char *)FPSTR("Sent get command to mc"));
                 }
             }
-        }, "getPowerConsumptionTask", 2048, NULL, 12, NULL);
+        }, "getPowerConsumptionTask", 2048, NULL, 6, NULL);
     }
 }
