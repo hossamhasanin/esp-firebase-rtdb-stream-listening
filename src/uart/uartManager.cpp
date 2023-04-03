@@ -11,7 +11,7 @@ static void uart_event_task(void *pvParameters)
     size_t buffered_size;
     uint8_t* dtmp = (uint8_t*) malloc(RD_BUF_SIZE);
     ReceivedData data;
-    char powerConsumptionBuffer[4];
+    char receivedNumbersBuffer[16];
     for(;;) {
         // Serial.println("Uart running");
         //Waiting for UART event.
@@ -26,9 +26,9 @@ static void uart_event_task(void *pvParameters)
                 case UART_DATA:
                     Serial.printf("data, len: %d;\n", event.size);
                     uart_read_bytes(EX_UART_NUM, dtmp, event.size, portMAX_DELAY);
-                    UartManager::parseReceivedData(&data, dtmp , powerConsumptionBuffer);
-                    // cast dtmp int print dtmp to console using printf
                     Serial.printf("uart[%d] read: %s\n", EX_UART_NUM, (char*)dtmp);
+                    UartManager::parseReceivedData(&data, dtmp , receivedNumbersBuffer);
+                    // cast dtmp int print dtmp to console using printf
                     // uart_write_bytes(EX_UART_NUM, (const char*) dtmp, event.size);
                     break;
                 //Event of HW FIFO overflow detected
@@ -84,59 +84,70 @@ void reverseString(char *str) {
     }
 }
 
-void UartManager::parseReceivedData(ReceivedData* receivedData, uint8_t* data , char* powerConsumptionBuffer){
-    if (!receivedData->gotKey){
-        receivedData->key = atoi((char*)data);
-        if (!DataHolder::isKeyValid(receivedData->key)){
-            Serial.print("uart key is not valid ");
-            Serial.println(receivedData->key);
-            return;
-        }
-        receivedData->gotKey = true;
-    } else {
-        if (receivedData->key == powerConsumptionId){
-            receivedData->gotKey = false;
-            // reverse the powerConsumptionBuffer
-            // reverseString(powerConsumptionBuffer);
-            double powerConsumption = atof((char *)data)/1000;
-            Serial.print("powerConsumption recieved: ");
-            Serial.println(powerConsumption);
-            dataHolder->setPowerConsumption(powerConsumption);
-            UartManager::notifyDataChanged(receivedData->key);
-            // concatinate (char* data) in recieving the power consumption number
-            // strcat(powerConsumptionBuffer, (char*)data);
-            // Serial.print("powerConsumptionBuffer: ");
-            // Serial.println(powerConsumptionBuffer);
-        } else {
-            receivedData->value = atoi((char*)data);
-            receivedData->gotKey = false;
-            if (receivedData->key == tempId){
-                dataHolder->setTemp(receivedData->value);
-            } else if (receivedData->key == led1Id){
-                dataHolder->setLed1(receivedData->value);
-            } else if (receivedData->key == electriId){
-                dataHolder->setElectri(receivedData->value);
-            } else if (receivedData->key == passwordWrongAlarmId){
-                dataHolder->setPasswordWrongAlarm(receivedData->value);
-            } else if (receivedData->key == numOfPeopleId){
-                dataHolder->setNumOfPeople(receivedData->value);
-            } else if (receivedData->key == gasLeakAlarmId) {
-                dataHolder->setGasLeakAlarm(receivedData->value);
-            } else if (receivedData->key == rgblStateId) {
-                dataHolder->setRgblState(receivedData->value);
-            } else if (receivedData->key == doorStateId) {
-                dataHolder->setDoorState(receivedData->value);
+void UartManager::parseReceivedData(ReceivedData* receivedData, uint8_t* data , char* receivedNumbersBuffer){
+
+    while(*data != 0){
+        Serial.printf("UART receivedNumbersBuffer so far: %s \n", receivedNumbersBuffer);
+
+        if (*data == ',' || *data == '/'){
+
+            if (*data == ','){
+                receivedData->key = atoi(receivedNumbersBuffer);
+                Serial.printf("UART got a key: %d \n", receivedData->key);
+                receivedData->gotKey = true;
+                // clear the receivedNumbersBuffer
+                memset(receivedNumbersBuffer, 0, sizeof(receivedNumbersBuffer));
+            } else {
+                receivedData->gotKey = false;
+                if (receivedData->key == powerConsumptionId){
+                    double powerConsumption = atof((char *)receivedNumbersBuffer)/1000;
+                    Serial.print("powerConsumption recieved: ");
+                    Serial.println(powerConsumption);
+                    dataHolder->setPowerConsumption(powerConsumption);
+                } else {
+                    receivedData->value = atoi(receivedNumbersBuffer);
+                    if (receivedData->key == tempId){
+                        dataHolder->setTemp(receivedData->value);
+                    } else if (receivedData->key == led1Id){
+                        dataHolder->setLed1(receivedData->value);
+                    } else if (receivedData->key == electriId){
+                        dataHolder->setElectri(receivedData->value);
+                    } else if (receivedData->key == passwordWrongAlarmId){
+                        dataHolder->setPasswordWrongAlarm(receivedData->value);
+                    } else if (receivedData->key == numOfPeopleId){
+                        dataHolder->setNumOfPeople(receivedData->value);
+                    } else if (receivedData->key == gasLeakAlarmId) {
+                        dataHolder->setGasLeakAlarm(receivedData->value);
+                    } else if (receivedData->key == rgblStateId) {
+                        dataHolder->setRgblState(receivedData->value);
+                    } else if (receivedData->key == doorStateId) {
+                        dataHolder->setDoorState(receivedData->value);
+                    }
+                }
+                UartManager::notifyDataChanged(receivedData->key);
+                const char star = RECIEVED_VALUE_FLAG;
+                uart_write_bytes(EX_UART_NUM, &star, 1);
+                memset(receivedNumbersBuffer, 0, sizeof(receivedNumbersBuffer));
             }
-            UartManager::notifyDataChanged(receivedData->key);
+
+        } else {
+            char num_str[4];
+            sprintf(num_str, "%c", *data);
+            strcat(receivedNumbersBuffer, num_str);
+            // print data
+            Serial.printf("UART got a data: %c \n", *data);
+            Serial.printf("UART receivedNumbersBuffer so far: %s \n", receivedNumbersBuffer);
         }
+
+        data++;
     }
 }
 
 void UartManager::setupUartFactory(DataHolder* dataHolder , DataChangedCallback* dataChangedCallback){
     this->initUart(dataHolder);
     this->registerDataChangedCallback(dataChangedCallback);
-    this->registerTimerToGetPowerConsumptionAndTemp();
-    this->notifiyMicroControllerToGetPowerConsump();
+    // this->registerTimerToGetPowerConsumptionAndTemp();
+    // this->notifiyMicroControllerToGetPowerConsump();
 }
 
 void UartManager::initUart(DataHolder* dataHolder){

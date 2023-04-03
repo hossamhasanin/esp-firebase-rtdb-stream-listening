@@ -20,6 +20,8 @@
 
 #define TIMER_DIVIDER   (80)
 
+#define RECIEVED_VALUE_FLAG '*'
+
 
 struct ReceivedData {
     uint8_t key;
