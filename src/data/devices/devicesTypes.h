@@ -1,0 +1,7 @@
+enum DevicesTypes {
+    SWITCH,
+    TEMPRATURE_SENSOR,
+    POWER_CONSUMPTION,
+    PEOPLE_COUNTER,
+    RGB_LIGHT
+};

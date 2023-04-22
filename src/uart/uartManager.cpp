@@ -2,7 +2,7 @@
 
 QueueHandle_t UartManager::uart0_queue;
 QueueHandle_t UartManager::dataChangedQueue;
-DataHolder* UartManager::dataHolder = nullptr;
+DevicesManager* UartManager::dataHolder = nullptr;
 SemaphoreHandle_t UartManager::timerSem = NULL;
 
 static void uart_event_task(void *pvParameters)
@@ -103,26 +103,15 @@ void UartManager::parseReceivedData(ReceivedData* receivedData, uint8_t* data , 
                     double powerConsumption = atof((char *)receivedNumbersBuffer)/1000;
                     Serial.print("powerConsumption recieved: ");
                     Serial.println(powerConsumption);
-                    dataHolder->setPowerConsumption(powerConsumption);
+                    DeviceStateHolder stateHolder;
+                    stateHolder.doubleValue = powerConsumption;
+                    dataHolder->getDevice(powerConsumptionId)->updatedDeviceState(stateHolder);
                 } else {
                     receivedData->value = atoi(receivedNumbersBuffer);
-                    if (receivedData->key == tempId){
-                        dataHolder->setTemp(receivedData->value);
-                    } else if (receivedData->key == led1Id){
-                        dataHolder->setLed1(receivedData->value);
-                    } else if (receivedData->key == electriId){
-                        dataHolder->setElectri(receivedData->value);
-                    } else if (receivedData->key == passwordWrongAlarmId){
-                        dataHolder->setPasswordWrongAlarm(receivedData->value);
-                    } else if (receivedData->key == numOfPeopleId){
-                        dataHolder->setNumOfPeople(receivedData->value);
-                    } else if (receivedData->key == gasLeakAlarmId) {
-                        dataHolder->setGasLeakAlarm(receivedData->value);
-                    } else if (receivedData->key == rgblStateId) {
-                        dataHolder->setRgblState(receivedData->value);
-                    } else if (receivedData->key == doorStateId) {
-                        dataHolder->setDoorState(receivedData->value);
-                    }
+                    DeviceStateHolder stateHolder;
+                    stateHolder.intValue = receivedData->value;
+                    stateHolder.boolValue = receivedData->value;
+                    dataHolder->getDevice(receivedData->key)->updatedDeviceState(stateHolder);
                 }
                 UartManager::notifyDataChanged(receivedData->key);
                 const char star = RECIEVED_VALUE_FLAG;
@@ -143,14 +132,14 @@ void UartManager::parseReceivedData(ReceivedData* receivedData, uint8_t* data , 
     }
 }
 
-void UartManager::setupUartFactory(DataHolder* dataHolder , DataChangedCallback* dataChangedCallback){
+void UartManager::setupUartFactory(DevicesManager* dataHolder , DataChangedCallback* dataChangedCallback){
     this->initUart(dataHolder);
     this->registerDataChangedCallback(dataChangedCallback);
-    // this->registerTimerToGetPowerConsumptionAndTemp();
-    // this->notifiyMicroControllerToGetPowerConsump();
+    this->registerTimerToGetPowerConsumptionAndTemp();
+    this->notifiyMicroControllerToGetPowerConsump();
 }
 
-void UartManager::initUart(DataHolder* dataHolder){
+void UartManager::initUart(DevicesManager* dataHolder){
     UartManager::dataHolder = dataHolder;
 
     dataChangedQueue = xQueueCreate(10, sizeof(uint8_t));
@@ -204,14 +193,17 @@ void UartManager::registerDataChangedCallback(DataChangedCallback* dataChangedCa
 }
 
 void UartManager::sendData(uint8_t key , uint8_t value){
-    char key_str[5]; // assuming the key is a signed 8-bit integer
-    char value_str[4]; // assuming the value is an unsigned 8-bit integer
+    char key_str; // assuming the key is a signed 8-bit integer
+    char value_str; // assuming the value is an unsigned 8-bit integer
 
     // convert key and value to strings using sprintf
-    sprintf(key_str, "%d", key);
-    sprintf(value_str, "%u", value);
-    uart_write_bytes(EX_UART_NUM, key_str, strlen(key_str));
-    uart_write_bytes(EX_UART_NUM, value_str, strlen(value_str));
+    sprintf(&key_str, "%d", key);
+    sprintf(&value_str, "%d", value);
+    uart_write_bytes(EX_UART_NUM, &key_str, 1);
+    Serial.printf("Sent : %c \n" , key_str);
+    delay(40);
+    uart_write_bytes(EX_UART_NUM, &value_str, 1);
+    Serial.printf("Sent : %c \n" , value_str);
 }
 
 bool IRAM_ATTR UartManager::timerCallback(void* arg){
@@ -251,13 +243,54 @@ void UartManager::notifiyMicroControllerToGetPowerConsump(){
             while (true) {
                 if (xSemaphoreTake(timerSem, portMAX_DELAY) == pdPASS) {
                     Serial.println((const char *)FPSTR("Sending get command to mc"));
-                    char key_str[2]; // assuming the key is a signed 8-bit integer
+                    // char key_str; // assuming the key is a signed 8-bit integer
                     // convert key and value to strings using sprintf
-                    sprintf(key_str, "%d", tempId);
-                    uart_write_bytes(EX_UART_NUM, key_str, strlen(key_str));
+                    // sprintf(&key_str, "%d", tempId);
+                    // uart_write_bytes(EX_UART_NUM, &key_str, 1);
+
+                    // sendData(3 , 1);
+                    const char k = '3';
+                    uart_write_bytes(EX_UART_NUM, &k, 1);
+                    // delayMicroseconds(1);
+                    const char v = '1';
+                    uart_write_bytes(EX_UART_NUM, &v, 1);
+
+                    delay(5000);
+                    uart_write_bytes(EX_UART_NUM, &k, 1);
+                    // delayMicroseconds(1);
+                    const char v2 = '0';
+                    uart_write_bytes(EX_UART_NUM, &v2, 1);
+
                     Serial.println((const char *)FPSTR("Sent get command to mc"));
                 }
             }
         }, "getPowerConsumptionTask", 2048, NULL, 6, NULL);
+    }
+}
+
+void UartManager::updateSwitch(Switch* sw){
+    sendData(sw->getKey() , sw->getState());
+}
+
+void UartManager::updateTempratureSensor(TempratureSensor* ts){
+    // Not supported yet
+    Serial.println((const char *)FPSTR("Sending temprature through uart is not supported"));
+}
+
+void UartManager::updatePowerConsumption(PowerConsumption* pc){
+    // Not supported yet
+    Serial.println((const char *)FPSTR("Sending power consumption through uart is not supported"));
+}
+
+void UartManager::updatePeopleCounter(PeopleCounter* pc){
+    // Not supported yet
+    Serial.println((const char *)FPSTR("Sending people counter through uart is not supported"));
+}
+
+void UartManager::updateRgbLight(RgbLight* rgb){
+    if (rgb->getIsOn()){
+        sendData(rgb->getKey() , rgb->getColorId());
+    } else {
+        sendData(rgb->getKey() , 0);
     }
 }

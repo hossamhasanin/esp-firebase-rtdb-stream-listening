@@ -2,10 +2,10 @@
 
 #include <Firebase_ESP_Client.h>
 #include "freertos/FreeRTOS.h"
-#include "data/dataItem.h"
-#include "data/dataHolder.h"
 #include "freertos/semphr.h"
 #include "driver/timer.h"
+#include "data/devices/devicesManager.h"
+#include "data/devices/updateDevicesCallback.h"
 
 /* 2. Define the API Key */
 #define API_KEY "API_KEY"
@@ -24,7 +24,7 @@
 
 
 
-class FirebaseListener{
+class FirebaseListener : public UpdateDevicesCallback{
 
     
     public:
@@ -33,7 +33,7 @@ class FirebaseListener{
 
         static SemaphoreHandle_t timerSem;
         static FirebaseData fbdo;
-        static DataHolder* data;
+        static DevicesManager* data;
 
     private:
         FirebaseConfig config;
@@ -52,7 +52,7 @@ class FirebaseListener{
         static void onDataChangedEvent(DataChangedCallback* callback);
         static void notifyDataChangedToQueue(uint8_t dataKey);
 
-        void init(DataHolder* data);
+        void init(DevicesManager* data);
         void start(int maxQueueSize);
         void registerDataChangeTask(DataChangedCallback* callback);
         void registerTimerToUpdateLastOnline();
@@ -66,7 +66,13 @@ class FirebaseListener{
         void storePowerConsumption(double value);
         void updateTimaStamp();
 
-        void setupFirebaseFactory(DataHolder* dataHolder , DataChangedCallback* dataChangedCallback , int dataFildsCount);
+        void updateSwitch(Switch *device);
+        void updateTempratureSensor(TempratureSensor *device);
+        void updatePowerConsumption(PowerConsumption *device);
+        void updatePeopleCounter(PeopleCounter *device);
+        void updateRgbLight(RgbLight *device);
+
+        void setupFirebaseFactory(DevicesManager* dataHolder , DataChangedCallback* dataChangedCallback , int dataFildsCount);
         
         // static void setDataParsingCallback(DataParsingCallback callback);
     

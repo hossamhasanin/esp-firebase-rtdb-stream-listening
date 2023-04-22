@@ -7,9 +7,10 @@
 #include "freertos/queue.h"
 #include "driver/uart.h"
 #include <Arduino.h>
-#include "data/dataHolder.h"
 #include "freertos/semphr.h"
 #include "driver/timer.h"
+#include "data/devices/updateDevicesCallback.h"
+#include "data/devices/devicesManager.h"
 
 
 #define EX_UART_NUM UART_NUM_2
@@ -32,26 +33,32 @@ struct ReceivedData {
 
 void reverseString(char *str);
 
-class UartManager {
+class UartManager : public UpdateDevicesCallback{
 
     public:
         typedef void (*DataChangedCallback)(uint8_t);
 
         static QueueHandle_t uart0_queue;
         static QueueHandle_t dataChangedQueue;
-        static DataHolder* dataHolder;
+        static DevicesManager* dataHolder;
         static SemaphoreHandle_t timerSem;
 
-        void sendData(uint8_t key , uint8_t value);
+        static void sendData(uint8_t key , uint8_t value);
         static bool IRAM_ATTR timerCallback(void* arg);
         static void notifyDataChanged(uint8_t dataKey);
         static void parseReceivedData(ReceivedData* receivedData, uint8_t* data , char* powerConsumptionBuffer);
 
-        void setupUartFactory(DataHolder* dataHolder , DataChangedCallback* dataChangedCallback);
+        void setupUartFactory(DevicesManager* dataHolder , DataChangedCallback* dataChangedCallback);
+
+        void updateSwitch(Switch *device);
+        void updateTempratureSensor(TempratureSensor *device);
+        void updatePowerConsumption(PowerConsumption *device);
+        void updatePeopleCounter(PeopleCounter *device);
+        void updateRgbLight(RgbLight *device);
 
     private:
         static void onDataChangedListner(DataChangedCallback* dataChangedCallback);
-        void initUart(DataHolder* dataHolder);
+        void initUart(DevicesManager* dataHolder);
         void registerTimerToGetPowerConsumptionAndTemp();
         void notifiyMicroControllerToGetPowerConsump();
         void registerDataChangedCallback(DataChangedCallback* callback);

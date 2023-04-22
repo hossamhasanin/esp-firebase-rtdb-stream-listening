@@ -3,20 +3,20 @@
 QueueHandle_t FirebaseListener::queueFlagChangedData = NULL;
 TaskHandle_t FirebaseListener::_timerHandle = NULL;
 SemaphoreHandle_t FirebaseListener::timerSem = NULL;
-DataHolder* FirebaseListener::data = nullptr;
+DevicesManager* FirebaseListener::data = nullptr;
 
 FirebaseData FirebaseListener::stream;
 FirebaseData FirebaseListener::fbdo;
 // FirebaseListener::DataParsingCallback FirebaseListener::dataParsingCallback = NULL;
 
-void FirebaseListener::setupFirebaseFactory(DataHolder* dataHolder , DataChangedCallback* dataChangedCallback , int dataFildsCount) {
+void FirebaseListener::setupFirebaseFactory(DevicesManager* dataHolder , DataChangedCallback* dataChangedCallback , int dataFildsCount) {
   this->init(dataHolder);
   this->start(dataFildsCount);
   this->registerDataChangeTask(dataChangedCallback);
   this->registerTimerToUpdateLastOnline();
 }
 
-void FirebaseListener::init(DataHolder* data) {
+void FirebaseListener::init(DevicesManager* data) {
   FirebaseListener::data = data;
   
 //   /* Assign the api key (required) */
@@ -125,40 +125,35 @@ void FirebaseListener::streamCallback(FirebaseStream data)
     // extract the key from "/1" data path
     int key = atoi(data.dataPath().c_str() + 1);
     Serial.printf("key %d \n" , key);
-    bool isSet = false;
-    if (key != powerConsumptionId){
-      isSet = FirebaseListener::data->setByteData(key, data.intData());
-    } else {
-      isSet = FirebaseListener::data->setDoubleData(key, data.intData());
-    }
+    DeviceStateHolder stateHolder;
+    stateHolder.intValue = data.intData();
+    FirebaseListener::data->getDevice(key)->updatedDeviceState(stateHolder);
     Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.intData());
-    if (isSet) {
-        notifyDataChangedToQueue(key);
-    }
+    notifyDataChangedToQueue(key);
   } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_double) {
     int key = atoi(data.dataPath().c_str() + 1);
     Serial.printf("key %d \n" , key);
-    bool isSet = FirebaseListener::data->setDoubleData(key, data.doubleData());
+    DeviceStateHolder stateHolder;
+    stateHolder.doubleValue = data.doubleData();
+    FirebaseListener::data->getDevice(key)->updatedDeviceState(stateHolder);
     Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.doubleData());
-    if (isSet) {
-      notifyDataChangedToQueue(key);
-    }
+    notifyDataChangedToQueue(key);
   } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_float) {
     int key = atoi(data.dataPath().c_str() + 1);
     Serial.printf("key %d \n" , key);
-    bool isSet = FirebaseListener::data->setDoubleData(key, data.doubleData());
-    Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.doubleData());
-    if (isSet) {
-      notifyDataChangedToQueue(key);
-    }
+    DeviceStateHolder stateHolder;
+    stateHolder.doubleValue = data.floatData();
+    FirebaseListener::data->getDevice(key)->updatedDeviceState(stateHolder);
+    Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.floatData());
+    notifyDataChangedToQueue(key);
   } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_boolean) {
     int key = atoi(data.dataPath().c_str() + 1);
     Serial.printf("key %d \n" , key);
-    bool isSet = FirebaseListener::data->setBoolData(key, data.boolData());
+    DeviceStateHolder stateHolder;
+    stateHolder.boolValue = data.boolData();
+    FirebaseListener::data->getDevice(key)->updatedDeviceState(stateHolder);
     Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.boolData());
-    if (isSet) {
-      notifyDataChangedToQueue(key);
-    }
+    notifyDataChangedToQueue(key);
   } else {
     Serial.println((const char *)FPSTR("Data type is not JSON"));
   }
@@ -318,6 +313,63 @@ void FirebaseListener::storePowerConsumption(double value) {
   Firebase.RTDB.setTimestamp(&fbdo, timestampPath);
 }
 
+void FirebaseListener::updateSwitch(Switch* sw) {
+  const char* key = String(sw->getKey()).c_str();
+  char path[strlen(DATA_PATH) + 1 + strlen(key) + 1 + strlen(IS_ON_FEATURE) + 1];
+  strcpy(path, DATA_PATH);
+  strcat(path, "/");
+  strcat(path, key);
+  strcat(path, "/");
+  strcat(path, IS_ON_FEATURE);
+  Firebase.RTDB.setBool(&fbdo, path, sw->getState());
+}
+
+void FirebaseListener::updateTempratureSensor(TempratureSensor* ts) {
+  const char* key = String(ts->getKey()).c_str();
+  char path[strlen(DATA_PATH) + 1 + strlen(key) + 1 + strlen(TEMPRATURE_FEATURE) + 1];
+  strcpy(path, DATA_PATH);
+  strcat(path, "/");
+  strcat(path, key);
+  strcat(path, "/");
+  strcat(path, TEMPRATURE_FEATURE);
+  Firebase.RTDB.setInt(&fbdo, path, ts->getTemprature());
+}
+
+void FirebaseListener::updatePowerConsumption(PowerConsumption* pc) {
+  FirebaseJson json;
+  json.set("value", pc->getPowerConsumption());
+  Firebase.RTDB.pushJSON(&fbdo, POWER_CONSUMPTION_PATH, &json);
+  // concatinate path with "/timestamp"
+  char timestampPath[fbdo.dataPath().length() + fbdo.pushName().length() + strlen("/timestamp") + 2];
+  strcpy(timestampPath, fbdo.dataPath().c_str());
+  strcat(timestampPath, "/");
+  strcat(timestampPath, fbdo.pushName().c_str());
+  strcat(timestampPath, "/timestamp");
+  Firebase.RTDB.setTimestamp(&fbdo, timestampPath);
+}
+
+void FirebaseListener::updatePeopleCounter(PeopleCounter* pc) {
+  const char* key = String(pc->getKey()).c_str();
+  char path[strlen(DATA_PATH) + 1 + strlen(key) + 1 + strlen(PEOPLE_COUNTER_FEATURE) + 1];
+  strcpy(path, DATA_PATH);
+  strcat(path, "/");
+  strcat(path, key);
+  strcat(path, "/");
+  strcat(path, PEOPLE_COUNTER_FEATURE);
+  Firebase.RTDB.setInt(&fbdo, path, pc->getPeopleCount());
+}
+
+void FirebaseListener::updateRgbLight(RgbLight* rgb) {
+  const char* key = String(rgb->getKey()).c_str();
+  char path[strlen(DATA_PATH) + 1 + strlen(key) + 1];
+  strcpy(path, DATA_PATH);
+  strcat(path, "/");
+  strcat(path, key);
+  FirebaseJson json;
+  json.set(COLOR_ID_FEATURE , rgb->getColorId());
+  json.set(IS_ON_FEATURE , rgb->getIsOn());
+  Firebase.RTDB.setJSON(&fbdo, path, &json);
+}
 
 
 

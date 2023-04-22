@@ -1,26 +1,26 @@
 #include <Arduino.h>
 
-#include "firebaseListener.h"
-#include "data/dataHolder.h"
 #include "data/nvsManager/nvsManager.h"
 
 #include "webServer/webServer.h"
 #include "wifiManager/wifiManager.h"
 #include "freertos/FreeRTOS.h"
 #include "uart/uartManager.h"
+#include "firebaseListener.h"
 #include <WiFi.h>
 #include <string>
 #include <esp_task_wdt.h>
+#include "data/devices/devicesManager.h"
 
-DataHolder data;
+DevicesManager devicesManager;
 FirebaseListener firebaseListener;
 UartManager uartManager;
 FirebaseListener::DataChangedCallback onlineDataChangedCallback = [](uint8_t key) {
     Serial.printf("\n Online data changed: key: %d\n", key);
 
 
-    //TODO: here send the changed data to microcontroller using serial
-    uartManager.sendData(key , data.getByteData(key));
+    //here send the changed data to microcontroller using serial
+    uartManager.updateDevice(devicesManager.getDevice(key));
 };
 WebServer::OnOfflineDataChangedCallback offlineDataChangedCallback = [](int key, int value) {
     Serial.printf("\n Offline data changed: key: %d, value: %d", key, value);
@@ -32,29 +32,10 @@ WebServer::OnOfflineDataChangedCallback offlineDataChangedCallback = [](int key,
 UartManager::DataChangedCallback uartDataChangedCallback = [](uint8_t key) {
     Serial.printf("\nUart data changed: key: %d\n", key);
 
-    // //here send the changed data to firbase
-    // if (key == tempId){
-    //   firebaseListener.storeInt(String(key).c_str() , data.getTemp());
-    // } else if (key == doorStateId){
-    //   firebaseListener.storeBool(String(key).c_str() , data.getDoorState());
-    // } else if (key == led1Id){
-    //   firebaseListener.storeBool(String(key).c_str() , data.getLed1());
-    // } else if (key == electriId){
-    //   firebaseListener.storeBool(String(key).c_str() , data.getElectri());
-    // } else if (key == rgblStateId){
-    //   firebaseListener.storeBool(String(key).c_str() , data.getRgblState());
-    // } else if (key == gasLeakAlarmId){
-    //   firebaseListener.storeBool(String(key).c_str() , data.getGasLeakAlarm());
-    // } else if (key == numOfPeopleId){
-    //   firebaseListener.storeInt(String(key).c_str() , data.getNumOfPeople());
-    // } else if (key == passwordWrongAlarmId){
-    //   firebaseListener.storeBool(String(key).c_str() , data.getPasswordWrongAlarm());
-    // } else if (key == powerConsumptionId){
-    //   Serial.printf("powerConsumption is to store: %f\n", data.getPowerConsumption());
-      
-    //   firebaseListener.storePowerConsumption(data.getPowerConsumption());
-    // }
-    
+    //TODO: remember to check on the the wifi connection before sending data to firebase
+    // If the wifi is not connected, the data will be sent to the web socket server
+    // and will be sent to firebase when the wifi is connected again
+    firebaseListener.updateDevice(devicesManager.getDevice(key));
 };
 
 GetDevicesAsJsonString getDevicesAsJsonString = []() -> const char* {
@@ -85,15 +66,10 @@ GetDevicesAsJsonString getDevicesAsJsonString = []() -> const char* {
 // }
 
 void sendDevicesStateToFirebase(){
-    firebaseListener.storeBool(String(tempId).c_str() , data.getTemp());
-    firebaseListener.storeBool(String(doorStateId).c_str() , data.getDoorState());
-    firebaseListener.storeBool(String(led1Id).c_str() , data.getLed1());
-    firebaseListener.storeBool(String(electriId).c_str() , data.getElectri());
-    firebaseListener.storeBool(String(rgblStateId).c_str() , data.getRgblState());
-    firebaseListener.storeBool(String(gasLeakAlarmId).c_str() , data.getGasLeakAlarm());
-    firebaseListener.storeInt(String(numOfPeopleId).c_str() , data.getNumOfPeople());
-    firebaseListener.storeBool(String(passwordWrongAlarmId).c_str() , data.getPasswordWrongAlarm());
-    firebaseListener.storeDouble(String(powerConsumptionId).c_str() , data.getPowerConsumption());
+    for (auto const& x : *devicesManager.getDevices())
+    {
+        firebaseListener.updateDevice(x.second);
+    }
 }
 
 void startFirebaseTask(void* parameter){
@@ -106,7 +82,7 @@ void startFirebaseTask(void* parameter){
           // ESP_ERROR_CHECK(WebServer::stopWebServer());  
           WebServer::stopWebSocket();
             
-          firebaseListener.setupFirebaseFactory(&data , &onlineDataChangedCallback , DATA_FIELDS_COUNT);
+          firebaseListener.setupFirebaseFactory(&devicesManager , &onlineDataChangedCallback , DATA_FIELDS_COUNT);
 
           sendDevicesStateToFirebase();
         } else {
@@ -132,24 +108,24 @@ void setup() {
 
   // WiFi.mode(WIFI_STA);
   // Home network
-  // WiFi.config(IPAddress(192,168,1,222), IPAddress(192,168,1,1), IPAddress(255,255,255,0) , IPAddress(192,168,1,1));
+  WiFi.config(IPAddress(192,168,1,222), IPAddress(192,168,1,1), IPAddress(255,255,255,0) , IPAddress(192,168,1,1));
   // The G
   // WiFi.config(IPAddress(192,168,232,222), IPAddress(192,168,232,99), IPAddress(255,255,255,0) , IPAddress(192,168,232,99));
   // Saba wifi
   // WiFi.config(IPAddress(192,168,6,222), IPAddress(192,168,6,154), IPAddress(255,255,255,0) , IPAddress(192,168,6,154));
   // Home network
-  // WiFi.begin("SilliconVally" , "Qwerty@013008$8720$hgfa$annie$olaf$2003$@");
+  WiFi.begin("SilliconVally" , "Qwerty@013008$8720$hgfa$annie$olaf$2003$@");
   // The G
   // WiFi.begin("The G" , "123456789hg");
 
 
-  // while (WiFi.status() != WL_CONNECTED)
-  // {
-  //   Serial.print(".");
-  //   delay(300);
-  // }
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.print(".");
+    delay(300);
+  }
 
-  // firebaseListener.setupFirebaseFactory(&data , &onlineDataChangedCallback , DATA_FIELDS_COUNT);
+  firebaseListener.setupFirebaseFactory(&devicesManager , &onlineDataChangedCallback , DATA_FIELDS_COUNT);
 
 
   // remove comment
@@ -170,7 +146,7 @@ void setup() {
 
 
 
-  uartManager.setupUartFactory(&data, &uartDataChangedCallback);
+  // uartManager.setupUartFactory(&data, &uartDataChangedCallback);
   vTaskDelete(NULL);
 }
 
