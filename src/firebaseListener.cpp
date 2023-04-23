@@ -273,63 +273,24 @@ void FirebaseListener::updateTimaStamp(){
   }
 }
 
-void FirebaseListener::storeInt(const char* key, int value) {
-  // concatinate DATA_PATH , "/" and the key
-  char path[strlen(DATA_PATH) + strlen(key) + 2];
-  strcpy(path, DATA_PATH);
-  strcat(path, "/");
-  strcat(path, key);
-  Firebase.RTDB.setInt(&fbdo, path, value);
-}
-
-void FirebaseListener::storeBool(const char* key, bool value) {
-  // concatinate DATA_PATH , "/" and the key
-  char path[strlen(DATA_PATH) + strlen(key) + 2];
-  strcpy(path, DATA_PATH);
-  strcat(path, "/");
-  strcat(path, key);
-  Firebase.RTDB.setBool(&fbdo, path, value);
-}
-
-void FirebaseListener::storeDouble(const char* key, double value) {
-  // concatinate DATA_PATH , "/" and the key
-  char path[strlen(DATA_PATH) + strlen(key) + 2];
-  strcpy(path, DATA_PATH);
-  strcat(path, "/");
-  strcat(path, key);
-  Firebase.RTDB.setDouble(&fbdo, path, value);
-}
-
-void FirebaseListener::storePowerConsumption(double value) {
-  FirebaseJson json;
-  json.set("value", value);
-  Firebase.RTDB.pushJSON(&fbdo, POWER_CONSUMPTION_PATH, &json);
-  // concatinate path with "/timestamp"
-  char timestampPath[fbdo.dataPath().length() + fbdo.pushName().length() + strlen("/timestamp") + 2];
-  strcpy(timestampPath, fbdo.dataPath().c_str());
-  strcat(timestampPath, "/");
-  strcat(timestampPath, fbdo.pushName().c_str());
-  strcat(timestampPath, "/timestamp");
-  Firebase.RTDB.setTimestamp(&fbdo, timestampPath);
-}
-
 void FirebaseListener::updateSwitch(Switch* sw) {
-  const char* key = String(sw->getKey()).c_str();
-  char path[strlen(DATA_PATH) + 1 + strlen(key) + 1 + strlen(IS_ON_FEATURE) + 1];
+  String key = String(sw->getKey());
+  char path[strlen(DATA_PATH) + 1 + strlen(key.c_str()) + 1 + strlen(IS_ON_FEATURE) + 1];
   strcpy(path, DATA_PATH);
   strcat(path, "/");
-  strcat(path, key);
+  strcat(path, key.c_str());
   strcat(path, "/");
   strcat(path, IS_ON_FEATURE);
+  Serial.println(path);
   Firebase.RTDB.setBool(&fbdo, path, sw->getState());
 }
 
 void FirebaseListener::updateTempratureSensor(TempratureSensor* ts) {
-  const char* key = String(ts->getKey()).c_str();
-  char path[strlen(DATA_PATH) + 1 + strlen(key) + 1 + strlen(TEMPRATURE_FEATURE) + 1];
+  String key = String(ts->getKey());
+  char path[strlen(DATA_PATH) + 1 + strlen(key.c_str()) + 1 + strlen(TEMPRATURE_FEATURE) + 1];
   strcpy(path, DATA_PATH);
   strcat(path, "/");
-  strcat(path, key);
+  strcat(path, key.c_str());
   strcat(path, "/");
   strcat(path, TEMPRATURE_FEATURE);
   Firebase.RTDB.setInt(&fbdo, path, ts->getTemprature());
@@ -349,22 +310,22 @@ void FirebaseListener::updatePowerConsumption(PowerConsumption* pc) {
 }
 
 void FirebaseListener::updatePeopleCounter(PeopleCounter* pc) {
-  const char* key = String(pc->getKey()).c_str();
-  char path[strlen(DATA_PATH) + 1 + strlen(key) + 1 + strlen(PEOPLE_COUNTER_FEATURE) + 1];
+  String key = String(pc->getKey());
+  char path[strlen(DATA_PATH) + 1 + strlen(key.c_str()) + 1 + strlen(PEOPLE_COUNTER_FEATURE) + 1];
   strcpy(path, DATA_PATH);
   strcat(path, "/");
-  strcat(path, key);
+  strcat(path, key.c_str());
   strcat(path, "/");
   strcat(path, PEOPLE_COUNTER_FEATURE);
   Firebase.RTDB.setInt(&fbdo, path, pc->getPeopleCount());
 }
 
 void FirebaseListener::updateRgbLight(RgbLight* rgb) {
-  const char* key = String(rgb->getKey()).c_str();
-  char path[strlen(DATA_PATH) + 1 + strlen(key) + 1];
+  String key = String(rgb->getKey());
+  char path[strlen(DATA_PATH) + 1 + strlen(key.c_str()) + 1];
   strcpy(path, DATA_PATH);
   strcat(path, "/");
-  strcat(path, key);
+  strcat(path, key.c_str());
   FirebaseJson json;
   json.set(COLOR_ID_FEATURE , rgb->getColorId());
   json.set(IS_ON_FEATURE , rgb->getIsOn());

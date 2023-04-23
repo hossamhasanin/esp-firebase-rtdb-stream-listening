@@ -60,10 +60,7 @@ class FirebaseListener : public UpdateDevicesCallback{
     public:
         void stop();
 
-        void storeInt(const char* key, int value);
-        void storeDouble(const char* key, double value);
-        void storeBool(const char* key, bool value);
-        void storePowerConsumption(double value);
+        
         void updateTimaStamp();
 
         void updateSwitch(Switch *device);

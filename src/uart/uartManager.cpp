@@ -200,10 +200,10 @@ void UartManager::sendData(uint8_t key , uint8_t value){
     sprintf(&key_str, "%d", key);
     sprintf(&value_str, "%d", value);
     uart_write_bytes(EX_UART_NUM, &key_str, 1);
-    Serial.printf("Sent : %c \n" , key_str);
+    Serial.printf("Sent key : %c \n" , key_str);
     delay(40);
     uart_write_bytes(EX_UART_NUM, &value_str, 1);
-    Serial.printf("Sent : %c \n" , value_str);
+    Serial.printf("Sent value : %c \n" , value_str);
 }
 
 bool IRAM_ATTR UartManager::timerCallback(void* arg){
@@ -269,6 +269,7 @@ void UartManager::notifiyMicroControllerToGetPowerConsump(){
 }
 
 void UartManager::updateSwitch(Switch* sw){
+    Serial.printf("Sending switch %d through uart with data : %d \n" , sw->getKey() , sw->getState());
     sendData(sw->getKey() , sw->getState());
 }
 
@@ -288,6 +289,7 @@ void UartManager::updatePeopleCounter(PeopleCounter* pc){
 }
 
 void UartManager::updateRgbLight(RgbLight* rgb){
+    Serial.println((const char *)FPSTR("Sending rgb light through uart"));
     if (rgb->getIsOn()){
         sendData(rgb->getKey() , rgb->getColorId());
     } else {

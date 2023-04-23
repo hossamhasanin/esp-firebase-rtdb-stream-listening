@@ -16,7 +16,8 @@ DevicesManager devicesManager;
 FirebaseListener firebaseListener;
 UartManager uartManager;
 FirebaseListener::DataChangedCallback onlineDataChangedCallback = [](uint8_t key) {
-    Serial.printf("\n Online data changed: key: %d\n", key);
+    Serial.printf("Online data changed: key: %d\n", key);
+    Serial.printf("Online data changed: key: %d\n", devicesManager.getDevice(key)->getType());
 
 
     //here send the changed data to microcontroller using serial
@@ -146,7 +147,7 @@ void setup() {
 
 
 
-  // uartManager.setupUartFactory(&data, &uartDataChangedCallback);
+  uartManager.setupUartFactory(&devicesManager, &uartDataChangedCallback);
   vTaskDelete(NULL);
 }
 
