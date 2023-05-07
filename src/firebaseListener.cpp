@@ -3,15 +3,17 @@
 QueueHandle_t FirebaseListener::queueFlagChangedData = NULL;
 TaskHandle_t FirebaseListener::_timerHandle = NULL;
 SemaphoreHandle_t FirebaseListener::timerSem = NULL;
+bool* FirebaseListener::stopSendingDataMutex = NULL;
 DevicesManager* FirebaseListener::data = nullptr;
 
 FirebaseData FirebaseListener::stream;
 FirebaseData FirebaseListener::fbdo;
 // FirebaseListener::DataParsingCallback FirebaseListener::dataParsingCallback = NULL;
 
-void FirebaseListener::setupFirebaseFactory(DevicesManager* dataHolder , DataChangedCallback* dataChangedCallback , int dataFildsCount) {
+void FirebaseListener::setupFirebaseFactory(DevicesManager* dataHolder , DataChangedCallback* dataChangedCallback , int dataFildsCount, bool* stopSendingDataMutex) {
   this->init(dataHolder);
   this->start(dataFildsCount);
+  FirebaseListener::stopSendingDataMutex = stopSendingDataMutex;
   this->registerDataChangeTask(dataChangedCallback);
   this->registerTimerToUpdateLastOnline();
 }
@@ -127,48 +129,52 @@ void FirebaseListener::streamCallback(FirebaseStream data)
     // split data.dataPath() by "/"
     // extract the last element the field name /1/isOn
     
-    const char* field = data.dataPath().substring(data.dataPath().lastIndexOf("/") + 1).c_str();
+    String field = data.dataPath().substring(data.dataPath().lastIndexOf("/") + 1);
 
     Serial.printf("key %d \n" , key);
-    Serial.printf("field %c \n" , field);
+    // print the field name
+    Serial.printf("field %s \n" , field.c_str());
     DeviceStateHolder stateHolder;
-    stateHolder.fieldName = field;
+    stateHolder.fieldName = field.c_str();
     stateHolder.intValue = data.intData();
     FirebaseListener::data->getDevice(key)->updatedDeviceState(stateHolder);
     Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.intData());
     notifyDataChangedToQueue(key);
   } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_double) {
     int key = atoi(data.dataPath().c_str() + 1);
-    const char* field = data.dataPath().substring(data.dataPath().lastIndexOf("/") + 1).c_str();
+    String field = data.dataPath().substring(data.dataPath().lastIndexOf("/") + 1);
 
     Serial.printf("key %d \n" , key);
-    Serial.printf("field %c \n" , field);
+    // print the field name
+    Serial.printf("field %s \n" , field.c_str());
     DeviceStateHolder stateHolder;
-    stateHolder.fieldName = field;
+    stateHolder.fieldName = field.c_str();
     stateHolder.doubleValue = data.doubleData();
     FirebaseListener::data->getDevice(key)->updatedDeviceState(stateHolder);
     Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.doubleData());
     notifyDataChangedToQueue(key);
   } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_float) {
     int key = atoi(data.dataPath().c_str() + 1);
-    const char* field = data.dataPath().substring(data.dataPath().lastIndexOf("/") + 1).c_str();
+    String field = data.dataPath().substring(data.dataPath().lastIndexOf("/") + 1);
 
     Serial.printf("key %d \n" , key);
-    Serial.printf("field %c \n" , field);
+    // print the field name
+    Serial.printf("field %s \n" , field.c_str());
     DeviceStateHolder stateHolder;
-    stateHolder.fieldName = field;
+    stateHolder.fieldName = field.c_str();
     stateHolder.doubleValue = data.floatData();
     FirebaseListener::data->getDevice(key)->updatedDeviceState(stateHolder);
     Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.floatData());
     notifyDataChangedToQueue(key);
   } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_boolean) {
     int key = atoi(data.dataPath().c_str() + 1);
-    const char* field = data.dataPath().substring(data.dataPath().lastIndexOf("/") + 1).c_str();
+    String field = data.dataPath().substring(data.dataPath().lastIndexOf("/") + 1);
 
     Serial.printf("key %d \n" , key);
-    Serial.printf("field %c \n" , field);
+    // print the field name
+    Serial.printf("field %s \n" , field.c_str());
     DeviceStateHolder stateHolder;
-    stateHolder.fieldName = field;
+    stateHolder.fieldName = field.c_str();
     stateHolder.boolValue = data.boolData();
     FirebaseListener::data->getDevice(key)->updatedDeviceState(stateHolder);
     Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.boolData());
@@ -196,9 +202,13 @@ void FirebaseListener::notifyDataChangedToQueue(uint8_t dataKey){
 
 void FirebaseListener::onDataChangedEvent(DataChangedCallback* callback) {
   uint8_t dataKey;
+  if ((*stopSendingDataMutex)){
+    return;
+  }
   if (xQueueReceive(queueFlagChangedData, &dataKey, (TickType_t) 2) == pdPASS){
     // if (dataChanged.key != NULL) {
       // Do something here
+      *stopSendingDataMutex = true;
       Serial.println((const char *)FPSTR("Some data has been changed"));
       (*callback)(dataKey);
     // }

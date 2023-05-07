@@ -4,6 +4,7 @@ QueueHandle_t UartManager::uart0_queue;
 QueueHandle_t UartManager::dataChangedQueue;
 DevicesManager* UartManager::dataHolder = nullptr;
 SemaphoreHandle_t UartManager::timerSem = NULL;
+bool* UartManager::stopSendingDataMutex = NULL;
 
 static void uart_event_task(void *pvParameters)
 {
@@ -89,9 +90,14 @@ void UartManager::parseReceivedData(ReceivedData* receivedData, uint8_t* data , 
     while(*data != 0){
         Serial.printf("UART receivedNumbersBuffer so far: %s \n", receivedNumbersBuffer);
 
-        if (*data == ',' || *data == '/'){
+        if (*data == ',' || *data == '/' || *data == '*'){
 
-            if (*data == ','){
+            if (*data == '*') {
+                if (UartManager::stopSendingDataMutex == NULL){
+                    Serial.println("stopSendingDataMutex is null");
+                }
+                *UartManager::stopSendingDataMutex = false;
+            } else if (*data == ','){
                 receivedData->key = atoi(receivedNumbersBuffer);
                 Serial.printf("UART got a key: %d \n", receivedData->key);
                 receivedData->gotKey = true;
@@ -132,7 +138,8 @@ void UartManager::parseReceivedData(ReceivedData* receivedData, uint8_t* data , 
     }
 }
 
-void UartManager::setupUartFactory(DevicesManager* dataHolder , DataChangedCallback* dataChangedCallback){
+void UartManager::setupUartFactory(DevicesManager* dataHolder , DataChangedCallback* dataChangedCallback , bool* stopSendingDataMutex){
+    UartManager::stopSendingDataMutex = stopSendingDataMutex;
     this->initUart(dataHolder);
     this->registerDataChangedCallback(dataChangedCallback);
     this->registerTimerToGetPowerConsumptionAndTemp();
@@ -242,26 +249,29 @@ void UartManager::notifiyMicroControllerToGetPowerConsump(){
         xTaskCreate([](void *param) {
             while (true) {
                 if (xSemaphoreTake(timerSem, portMAX_DELAY) == pdPASS) {
+                    if ((*UartManager::stopSendingDataMutex)){
+                        continue;
+                    }
                     Serial.println((const char *)FPSTR("Sending get command to mc"));
-                    // char key_str; // assuming the key is a signed 8-bit integer
+                    char key_str; // assuming the key is a signed 8-bit integer
                     // convert key and value to strings using sprintf
-                    // sprintf(&key_str, "%d", tempId);
-                    // uart_write_bytes(EX_UART_NUM, &key_str, 1);
+                    sprintf(&key_str, "%d", tempId);
+                    uart_write_bytes(EX_UART_NUM, &key_str, 1);
 
-                    // sendData(3 , 1);
-                    const char k = '3';
-                    uart_write_bytes(EX_UART_NUM, &k, 1);
-                    // delayMicroseconds(1);
-                    const char v = '1';
-                    uart_write_bytes(EX_UART_NUM, &v, 1);
+                    // // sendData(3 , 1);
+                    // const char k = '3';
+                    // uart_write_bytes(EX_UART_NUM, &k, 1);
+                    // // delayMicroseconds(1);
+                    // const char v = '1';
+                    // uart_write_bytes(EX_UART_NUM, &v, 1);
 
-                    delay(5000);
-                    uart_write_bytes(EX_UART_NUM, &k, 1);
-                    // delayMicroseconds(1);
-                    const char v2 = '0';
-                    uart_write_bytes(EX_UART_NUM, &v2, 1);
+                    // delay(5000);
+                    // uart_write_bytes(EX_UART_NUM, &k, 1);
+                    // // delayMicroseconds(1);
+                    // const char v2 = '0';
+                    // uart_write_bytes(EX_UART_NUM, &v2, 1);
 
-                    Serial.println((const char *)FPSTR("Sent get command to mc"));
+                    // Serial.println((const char *)FPSTR("Sent get command to mc"));
                 }
             }
         }, "getPowerConsumptionTask", 2048, NULL, 6, NULL);

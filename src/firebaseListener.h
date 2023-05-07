@@ -40,6 +40,7 @@ class FirebaseListener : public UpdateDevicesCallback{
         FirebaseAuth auth;
         TaskHandle_t _dataChangeHandle;
         static TaskHandle_t _timerHandle;
+        static bool* stopSendingDataMutex;
 
         static bool IRAM_ATTR timerCallback(void* arg);
 
@@ -70,7 +71,7 @@ class FirebaseListener : public UpdateDevicesCallback{
         void updateRgbLight(RgbLight *device);
         void updateAc(AcCommands *device);
 
-        void setupFirebaseFactory(DevicesManager* dataHolder , DataChangedCallback* dataChangedCallback , int dataFildsCount);
+        void setupFirebaseFactory(DevicesManager* dataHolder , DataChangedCallback* dataChangedCallback , int dataFildsCount , bool* stopSendingDataMutex);
         
         // static void setDataParsingCallback(DataParsingCallback callback);
     
