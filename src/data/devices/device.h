@@ -44,6 +44,7 @@ enum FeaturesIds {
     rgblStateId = 5,
     gasLeakAlarmId = 6,
     numOfPeopleId = 7,
+    acCommands = 8,
     passwordWrongAlarmId = 9,
     powerConsumptionId = 10,
 };

@@ -5,6 +5,7 @@
 #include "powerConsumption.h"
 #include "peopleCounter.h"
 #include "rgbLight.h"
+#include "acCommands.h"
 
 #define IS_ON_FEATURE "isOn"
 #define COLOR_ID_FEATURE "colorId"
@@ -24,6 +25,8 @@ class UpdateDevicesCallback {
                 updatePeopleCounter((PeopleCounter *)device);
             } else if (device->getType() == RGB_LIGHT){
                 updateRgbLight((RgbLight *)device);
+            } else if (device->getType() == AC) {
+                updateAc((AcCommands *)device);
             } else {
                 throw "Device type not supported";
             }
@@ -33,4 +36,5 @@ class UpdateDevicesCallback {
         virtual void updatePowerConsumption(PowerConsumption *device);
         virtual void updatePeopleCounter(PeopleCounter *device);
         virtual void updateRgbLight(RgbLight *device);
+        virtual void updateAc(AcCommands *device);
 };

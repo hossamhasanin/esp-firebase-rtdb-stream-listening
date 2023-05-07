@@ -124,32 +124,51 @@ void FirebaseListener::streamCallback(FirebaseStream data)
   } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_integer) {
     // extract the key from "/1" data path
     int key = atoi(data.dataPath().c_str() + 1);
+    // split data.dataPath() by "/"
+    // extract the last element the field name /1/isOn
+    
+    const char* field = data.dataPath().substring(data.dataPath().lastIndexOf("/") + 1).c_str();
+
     Serial.printf("key %d \n" , key);
+    Serial.printf("field %c \n" , field);
     DeviceStateHolder stateHolder;
+    stateHolder.fieldName = field;
     stateHolder.intValue = data.intData();
     FirebaseListener::data->getDevice(key)->updatedDeviceState(stateHolder);
     Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.intData());
     notifyDataChangedToQueue(key);
   } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_double) {
     int key = atoi(data.dataPath().c_str() + 1);
+    const char* field = data.dataPath().substring(data.dataPath().lastIndexOf("/") + 1).c_str();
+
     Serial.printf("key %d \n" , key);
+    Serial.printf("field %c \n" , field);
     DeviceStateHolder stateHolder;
+    stateHolder.fieldName = field;
     stateHolder.doubleValue = data.doubleData();
     FirebaseListener::data->getDevice(key)->updatedDeviceState(stateHolder);
     Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.doubleData());
     notifyDataChangedToQueue(key);
   } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_float) {
     int key = atoi(data.dataPath().c_str() + 1);
+    const char* field = data.dataPath().substring(data.dataPath().lastIndexOf("/") + 1).c_str();
+
     Serial.printf("key %d \n" , key);
+    Serial.printf("field %c \n" , field);
     DeviceStateHolder stateHolder;
+    stateHolder.fieldName = field;
     stateHolder.doubleValue = data.floatData();
     FirebaseListener::data->getDevice(key)->updatedDeviceState(stateHolder);
     Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.floatData());
     notifyDataChangedToQueue(key);
   } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_boolean) {
     int key = atoi(data.dataPath().c_str() + 1);
+    const char* field = data.dataPath().substring(data.dataPath().lastIndexOf("/") + 1).c_str();
+
     Serial.printf("key %d \n" , key);
+    Serial.printf("field %c \n" , field);
     DeviceStateHolder stateHolder;
+    stateHolder.fieldName = field;
     stateHolder.boolValue = data.boolData();
     FirebaseListener::data->getDevice(key)->updatedDeviceState(stateHolder);
     Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.boolData());
@@ -330,6 +349,10 @@ void FirebaseListener::updateRgbLight(RgbLight* rgb) {
   json.set(COLOR_ID_FEATURE , rgb->getColorId());
   json.set(IS_ON_FEATURE , rgb->getIsOn());
   Firebase.RTDB.setJSON(&fbdo, path, &json);
+}
+
+void FirebaseListener::updateAc(AcCommands* ac) {
+  Serial.println((const char *)FPSTR("Updating ac not implemented yet"));
 }
 
 

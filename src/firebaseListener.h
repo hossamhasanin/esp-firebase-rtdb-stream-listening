@@ -68,6 +68,7 @@ class FirebaseListener : public UpdateDevicesCallback{
         void updatePowerConsumption(PowerConsumption *device);
         void updatePeopleCounter(PeopleCounter *device);
         void updateRgbLight(RgbLight *device);
+        void updateAc(AcCommands *device);
 
         void setupFirebaseFactory(DevicesManager* dataHolder , DataChangedCallback* dataChangedCallback , int dataFildsCount);
         

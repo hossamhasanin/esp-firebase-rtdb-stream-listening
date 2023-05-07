@@ -55,6 +55,7 @@ class UartManager : public UpdateDevicesCallback{
         void updatePowerConsumption(PowerConsumption *device);
         void updatePeopleCounter(PeopleCounter *device);
         void updateRgbLight(RgbLight *device);
+        void updateAc(AcCommands *device);
 
     private:
         static void onDataChangedListner(DataChangedCallback* dataChangedCallback);

@@ -3,5 +3,6 @@ enum DevicesTypes {
     TEMPRATURE_SENSOR,
     POWER_CONSUMPTION,
     PEOPLE_COUNTER,
-    RGB_LIGHT
+    RGB_LIGHT,
+    AC
 };

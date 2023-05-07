@@ -296,3 +296,24 @@ void UartManager::updateRgbLight(RgbLight* rgb){
         sendData(rgb->getKey() , 0);
     }
 }
+
+void UartManager::updateAc(AcCommands* ac){
+    Serial.println((const char *)FPSTR("Sending ac through uart"));
+    if (ac->getCurrentCommand() == AC_ON) {
+        sendData(ac->getKey() , 'o');
+        ac->resetCommands();
+    } else if (ac->getCurrentCommand() == AC_OFF) {
+        sendData(ac->getKey() , 'f');
+        ac->resetCommands();
+    } else if (ac->getCurrentCommand() == AC_LOWER_TEMP) {
+        sendData(ac->getKey() , 'l');
+        uint8_t d = ac->getLowerTempEventCount();
+        uart_write_bytes(EX_UART_NUM, &d, 1);
+        ac->resetCommands();
+    } else if (ac->getCurrentCommand() == AC_RISE_TEMP) {
+        sendData(ac->getKey() , 'r');
+        uint8_t d = ac->getRiseTempEventCount();
+        uart_write_bytes(EX_UART_NUM, &d, 1);
+        ac->resetCommands();
+    }
+}
