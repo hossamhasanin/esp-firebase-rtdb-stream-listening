@@ -4,7 +4,7 @@ QueueHandle_t UartManager::uart0_queue;
 QueueHandle_t UartManager::dataChangedQueue;
 DevicesManager* UartManager::dataHolder = nullptr;
 SemaphoreHandle_t UartManager::timerSem = NULL;
-bool* UartManager::stopSendingDataMutex = NULL;
+bool* UartManager::stopSendingDataThroughUart = NULL;
 
 static void uart_event_task(void *pvParameters)
 {
@@ -93,10 +93,10 @@ void UartManager::parseReceivedData(ReceivedData* receivedData, uint8_t* data , 
         if (*data == ',' || *data == '/' || *data == '*'){
 
             if (*data == '*') {
-                if (UartManager::stopSendingDataMutex == NULL){
-                    Serial.println("stopSendingDataMutex is null");
+                if (UartManager::stopSendingDataThroughUart == NULL){
+                    Serial.println("stopSendingDataThroughUart is null");
                 }
-                *UartManager::stopSendingDataMutex = false;
+                *UartManager::stopSendingDataThroughUart = false;
             } else if (*data == ','){
                 receivedData->key = atoi(receivedNumbersBuffer);
                 Serial.printf("UART got a key: %d \n", receivedData->key);
@@ -138,8 +138,8 @@ void UartManager::parseReceivedData(ReceivedData* receivedData, uint8_t* data , 
     }
 }
 
-void UartManager::setupUartFactory(DevicesManager* dataHolder , DataChangedCallback* dataChangedCallback , bool* stopSendingDataMutex){
-    UartManager::stopSendingDataMutex = stopSendingDataMutex;
+void UartManager::setupUartFactory(DevicesManager* dataHolder , DataChangedCallback* dataChangedCallback , bool* stopSendingDataThroughUart){
+    UartManager::stopSendingDataThroughUart = stopSendingDataThroughUart;
     this->initUart(dataHolder);
     this->registerDataChangedCallback(dataChangedCallback);
     this->registerTimerToGetPowerConsumptionAndTemp();
@@ -249,7 +249,7 @@ void UartManager::notifiyMicroControllerToGetPowerConsump(){
         xTaskCreate([](void *param) {
             while (true) {
                 if (xSemaphoreTake(timerSem, portMAX_DELAY) == pdPASS) {
-                    if ((*UartManager::stopSendingDataMutex)){
+                    if ((*UartManager::stopSendingDataThroughUart)){
                         continue;
                     }
                     Serial.println((const char *)FPSTR("Sending get command to mc"));

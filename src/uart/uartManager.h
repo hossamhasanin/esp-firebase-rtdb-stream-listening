@@ -42,7 +42,7 @@ class UartManager : public UpdateDevicesCallback{
         static QueueHandle_t dataChangedQueue;
         static DevicesManager* dataHolder;
         static SemaphoreHandle_t timerSem;
-        static bool* stopSendingDataMutex;
+        static bool* stopSendingDataThroughUart;
 
         static void sendData(uint8_t key , uint8_t value);
         static bool IRAM_ATTR timerCallback(void* arg);
@@ -50,7 +50,7 @@ class UartManager : public UpdateDevicesCallback{
         static void parseReceivedData(ReceivedData* receivedData, uint8_t* data , char* powerConsumptionBuffer);
 
 
-        void setupUartFactory(DevicesManager* dataHolder , DataChangedCallback* dataChangedCallback , bool* stopSendingDataMutex);
+        void setupUartFactory(DevicesManager* dataHolder , DataChangedCallback* dataChangedCallback , bool* stopSendingDataThroughUart);
 
         void updateSwitch(Switch *device);
         void updateTempratureSensor(TempratureSensor *device);

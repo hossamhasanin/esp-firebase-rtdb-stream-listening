@@ -83,7 +83,7 @@ void startFirebaseTask(void* parameter){
           // ESP_ERROR_CHECK(WebServer::stopWebServer());  
           WebServer::stopWebSocket();
             
-          firebaseListener.setupFirebaseFactory(&devicesManager , &onlineDataChangedCallback , DATA_FIELDS_COUNT , uartManager.stopSendingDataMutex);
+          firebaseListener.setupFirebaseFactory(&devicesManager , &onlineDataChangedCallback , DATA_FIELDS_COUNT , uartManager.stopSendingDataThroughUart);
 
           sendDevicesStateToFirebase();
         } else {
@@ -97,7 +97,7 @@ void startFirebaseTask(void* parameter){
 }
 
 
-bool stopSendingDataMutex;
+bool stopSendingDataThroughUart;
 void setup() {
 
   Serial.begin(115200);
@@ -143,9 +143,9 @@ void setup() {
   // WebServer::setGetDevicesAsJsonStringCallback(getDevicesAsJsonString);
 
 
-  stopSendingDataMutex = false;
-  uartManager.setupUartFactory(&devicesManager, &uartDataChangedCallback , &stopSendingDataMutex);
-  firebaseListener.setupFirebaseFactory(&devicesManager , &onlineDataChangedCallback , DATA_FIELDS_COUNT , &stopSendingDataMutex);
+  stopSendingDataThroughUart = false;
+  uartManager.setupUartFactory(&devicesManager, &uartDataChangedCallback , &stopSendingDataThroughUart);
+  firebaseListener.setupFirebaseFactory(&devicesManager , &onlineDataChangedCallback , DATA_FIELDS_COUNT , &stopSendingDataThroughUart);
   vTaskDelete(NULL);
 }
 

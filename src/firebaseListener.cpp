@@ -3,17 +3,17 @@
 QueueHandle_t FirebaseListener::queueFlagChangedData = NULL;
 TaskHandle_t FirebaseListener::_timerHandle = NULL;
 SemaphoreHandle_t FirebaseListener::timerSem = NULL;
-bool* FirebaseListener::stopSendingDataMutex = NULL;
+bool* FirebaseListener::stopSendingDataThroughUart = NULL;
 DevicesManager* FirebaseListener::data = nullptr;
 
 FirebaseData FirebaseListener::stream;
 FirebaseData FirebaseListener::fbdo;
 // FirebaseListener::DataParsingCallback FirebaseListener::dataParsingCallback = NULL;
 
-void FirebaseListener::setupFirebaseFactory(DevicesManager* dataHolder , DataChangedCallback* dataChangedCallback , int dataFildsCount, bool* stopSendingDataMutex) {
+void FirebaseListener::setupFirebaseFactory(DevicesManager* dataHolder , DataChangedCallback* dataChangedCallback , int dataFildsCount, bool* stopSendingDataThroughUart) {
   this->init(dataHolder);
   this->start(dataFildsCount);
-  FirebaseListener::stopSendingDataMutex = stopSendingDataMutex;
+  FirebaseListener::stopSendingDataThroughUart = stopSendingDataThroughUart;
   this->registerDataChangeTask(dataChangedCallback);
   this->registerTimerToUpdateLastOnline();
 }
@@ -202,13 +202,13 @@ void FirebaseListener::notifyDataChangedToQueue(uint8_t dataKey){
 
 void FirebaseListener::onDataChangedEvent(DataChangedCallback* callback) {
   uint8_t dataKey;
-  if ((*stopSendingDataMutex)){
+  if ((*stopSendingDataThroughUart)){
     return;
   }
   if (xQueueReceive(queueFlagChangedData, &dataKey, (TickType_t) 2) == pdPASS){
     // if (dataChanged.key != NULL) {
       // Do something here
-      *stopSendingDataMutex = true;
+      *stopSendingDataThroughUart = true;
       Serial.println((const char *)FPSTR("Some data has been changed"));
       (*callback)(dataKey);
     // }
