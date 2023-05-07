@@ -83,7 +83,7 @@ void startFirebaseTask(void* parameter){
           // ESP_ERROR_CHECK(WebServer::stopWebServer());  
           WebServer::stopWebSocket();
             
-          firebaseListener.setupFirebaseFactory(&devicesManager , &onlineDataChangedCallback , DATA_FIELDS_COUNT , uartManager.stopSendingDataThroughUart);
+          firebaseListener.setupFirebaseFactory(&devicesManager , &onlineDataChangedCallback , DATA_FIELDS_COUNT , &stopSendingDataThroughUart);
 
           sendDevicesStateToFirebase();
         } else {
