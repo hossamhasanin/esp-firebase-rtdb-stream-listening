@@ -8,5 +8,5 @@ class Switch : public Device
         Switch(uint8_t key);
 
         bool getState();
-        void updatedDeviceState(DeviceStateHolder stateHolder);
+        bool updatedDeviceState(DeviceStateHolder stateHolder);
 };

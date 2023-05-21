@@ -22,5 +22,5 @@ class AcCommands : public Device{
         uint8_t getLowerTempEventCount();
         uint8_t getRiseTempEventCount();
         void resetCommands();
-        void updatedDeviceState(DeviceStateHolder stateHolder);
+        bool updatedDeviceState(DeviceStateHolder stateHolder);
 };

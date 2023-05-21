@@ -8,5 +8,5 @@ class PeopleCounter : public Device
         PeopleCounter(uint8_t key);
 
         uint8_t getPeopleCount();
-        void updatedDeviceState(DeviceStateHolder stateHolder);
+        bool updatedDeviceState(DeviceStateHolder stateHolder);
 };

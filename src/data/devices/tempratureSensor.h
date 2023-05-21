@@ -8,5 +8,5 @@ class TempratureSensor : public Device
         TempratureSensor(uint8_t key);
 
         uint8_t getTemprature();
-        void updatedDeviceState(DeviceStateHolder stateHolder);
+        bool updatedDeviceState(DeviceStateHolder stateHolder);
 };

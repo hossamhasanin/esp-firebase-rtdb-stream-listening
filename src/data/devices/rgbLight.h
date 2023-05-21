@@ -9,5 +9,5 @@ class RgbLight : public Device{
 
         bool getIsOn();
         uint8_t getColorId();
-        void updatedDeviceState(DeviceStateHolder stateHolder);
+        bool updatedDeviceState(DeviceStateHolder stateHolder);
 };

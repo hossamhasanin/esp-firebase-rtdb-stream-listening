@@ -26,7 +26,7 @@ class Device{
             return type;
         }
 
-        virtual void updatedDeviceState(DeviceStateHolder stateHolder);
+        virtual bool updatedDeviceState(DeviceStateHolder stateHolder);
 };
 
 // create enum for the data fields

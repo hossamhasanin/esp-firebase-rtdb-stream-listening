@@ -8,5 +8,5 @@ class PowerConsumption : public Device
         PowerConsumption(uint8_t key);
 
         double getPowerConsumption();
-        void updatedDeviceState(DeviceStateHolder stateHolder);
+        bool updatedDeviceState(DeviceStateHolder stateHolder);
 };

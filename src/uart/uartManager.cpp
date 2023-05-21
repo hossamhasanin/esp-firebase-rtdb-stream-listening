@@ -105,21 +105,24 @@ void UartManager::parseReceivedData(ReceivedData* receivedData, uint8_t* data , 
                 memset(receivedNumbersBuffer, 0, sizeof(receivedNumbersBuffer));
             } else {
                 receivedData->gotKey = false;
+                bool isChanged;
                 if (receivedData->key == powerConsumptionId){
                     double powerConsumption = atof((char *)receivedNumbersBuffer)/1000;
                     Serial.print("powerConsumption recieved: ");
                     Serial.println(powerConsumption);
                     DeviceStateHolder stateHolder;
                     stateHolder.doubleValue = powerConsumption;
-                    dataHolder->getDevice(powerConsumptionId)->updatedDeviceState(stateHolder);
+                    isChanged = dataHolder->getDevice(powerConsumptionId)->updatedDeviceState(stateHolder);
                 } else {
                     receivedData->value = atoi(receivedNumbersBuffer);
                     DeviceStateHolder stateHolder;
                     stateHolder.intValue = receivedData->value;
                     stateHolder.boolValue = receivedData->value;
-                    dataHolder->getDevice(receivedData->key)->updatedDeviceState(stateHolder);
+                    isChanged = dataHolder->getDevice(receivedData->key)->updatedDeviceState(stateHolder);
                 }
-                UartManager::notifyDataChanged(receivedData->key);
+                if (isChanged){
+                    UartManager::notifyDataChanged(receivedData->key);
+                }
                 const char star = RECIEVED_VALUE_FLAG;
                 uart_write_bytes(EX_UART_NUM, &star, 1);
                 memset(receivedNumbersBuffer, 0, sizeof(receivedNumbersBuffer));

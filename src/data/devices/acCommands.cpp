@@ -7,7 +7,7 @@ AcCommands::AcCommands(uint8_t key) : Device(key , AC){
     currentCommand = AC_OFF;
 }
 
-void AcCommands::updatedDeviceState(DeviceStateHolder stateHolder){
+bool AcCommands::updatedDeviceState(DeviceStateHolder stateHolder){
     // check if field name is equal to "isOn"
     if(stateHolder.fieldName == "isOn"){
         isOn = stateHolder.boolValue;
@@ -19,6 +19,7 @@ void AcCommands::updatedDeviceState(DeviceStateHolder stateHolder){
         riseTempEventCount = stateHolder.intValue;
         currentCommand = AC_RISE_TEMP;
     }
+    return true;
 }
 
 void AcCommands::resetCommands(){

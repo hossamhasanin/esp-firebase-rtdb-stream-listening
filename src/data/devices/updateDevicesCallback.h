@@ -16,6 +16,7 @@ class UpdateDevicesCallback {
     public:
         void updateDevice(Device *device){
             if (device->getType() == SWITCH){
+                Serial.println("Send value : "+((Switch*) device)->getState());
                 updateSwitch((Switch *)device);
             } else if (device->getType() == TEMPRATURE_SENSOR){
                 updateTempratureSensor((TempratureSensor *)device);

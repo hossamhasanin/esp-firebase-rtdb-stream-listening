@@ -5,9 +5,13 @@ RgbLight::RgbLight(uint8_t key) : Device(key , RGB_LIGHT){
     colorId = 0;
 }
 
-void RgbLight::updatedDeviceState(DeviceStateHolder stateHolder){
+bool RgbLight::updatedDeviceState(DeviceStateHolder stateHolder){
+    if (stateHolder.boolValue == isOn || stateHolder.intValue == colorId){
+        return false;
+    }
     isOn = stateHolder.boolValue;
     colorId = stateHolder.intValue;
+    return true;
 }
 
 bool RgbLight::getIsOn(){
