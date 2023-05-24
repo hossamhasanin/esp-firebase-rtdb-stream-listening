@@ -256,9 +256,8 @@ void UartManager::notifiyMicroControllerToGetPowerConsump(){
                         continue;
                     }
                     Serial.println((const char *)FPSTR("Sending get command to mc"));
-                    char key_str; // assuming the key is a signed 8-bit integer
+                    char key_str = 't';
                     // convert key and value to strings using sprintf
-                    sprintf(&key_str, "%d", tempId);
                     uart_write_bytes(EX_UART_NUM, &key_str, 1);
 
                     // // sendData(3 , 1);
