@@ -111,17 +111,17 @@ void setup() {
 
   // WiFi.mode(WIFI_STA);
   // Home network
-  // WiFi.config(IPAddress(192,168,1,222), IPAddress(192,168,1,1), IPAddress(255,255,255,0) , IPAddress(192,168,1,1));
+  WiFi.config(IPAddress(192,168,1,222), IPAddress(192,168,1,1), IPAddress(255,255,255,0) , IPAddress(192,168,1,1));
   // The G
   // WiFi.config(IPAddress(192,168,232,222), IPAddress(192,168,232,99), IPAddress(255,255,255,0) , IPAddress(192,168,232,99));
   // Saba wifi
-  WiFi.config(IPAddress(192,168,241,5), IPAddress(192,168,241,110), IPAddress(255,255,255,0) , IPAddress(192,168,241,110));
+  // WiFi.config(IPAddress(192,168,241,5), IPAddress(192,168,241,110), IPAddress(255,255,255,0) , IPAddress(192,168,241,110));
   // Home network
-  // WiFi.begin("SilliconVally" , "Qwerty@013008$8720$hgfa$annie$olaf$2003$@");
+  WiFi.begin("SilliconVally" , "Qwerty@013008$8720$hgfa$annie$olaf$2003$@");
   // The G
   // WiFi.begin("The G" , "123456789hg");
   // Saba wifi
-  WiFi.begin("Ax" , "0558817006");
+  // WiFi.begin("Ax" , "0558817006");
 
 
   while (WiFi.status() != WL_CONNECTED)

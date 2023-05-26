@@ -1,4 +1,5 @@
 #include "acCommands.h"
+#include <string.h>
 
 AcCommands::AcCommands(uint8_t key) : Device(key , AC){
     isOn = false;
@@ -9,13 +10,13 @@ AcCommands::AcCommands(uint8_t key) : Device(key , AC){
 
 bool AcCommands::updatedDeviceState(DeviceStateHolder stateHolder){
     // check if field name is equal to "isOn"
-    if(stateHolder.fieldName == "isOn"){
+    if(strcmp(stateHolder.fieldName , "isOn") == 0){
         isOn = stateHolder.boolValue;
         currentCommand = isOn ? AC_ON : AC_OFF;
-    } else if (stateHolder.fieldName == "lowerTempEventCount"){
+    } else if (strcmp(stateHolder.fieldName , "lowerTempEventCount") == 0){
         lowerTempEventCount = stateHolder.intValue;
         currentCommand = AC_LOWER_TEMP;
-    } else if (stateHolder.fieldName == "riseTempEventCount"){
+    } else if (strcmp(stateHolder.fieldName , "riseTempEventCount") == 0){
         riseTempEventCount = stateHolder.intValue;
         currentCommand = AC_RISE_TEMP;
     }

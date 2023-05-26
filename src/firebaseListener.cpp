@@ -108,10 +108,40 @@ void FirebaseListener::streamCallback(FirebaseStream data)
     Serial.println();
     size_t len = arr->iteratorBegin();
     FirebaseJson::IteratorValue value;
+    int id;
+    DeviceStateHolder stateHolder;
     for (size_t i = 0; i < len; i++)
     {
         value = arr->valueAt(i);
         Serial_Printf((const char *)FPSTR("%d, Type: %s, Value: %s\n"), i, value.type == FirebaseJson::JSON_OBJECT ? (const char *)FPSTR("object") : (const char *)FPSTR("array"), value.value.c_str());
+
+        if (value.type == FirebaseJson::JSON_ARRAY){
+            if (value.value == "null"){
+              continue;
+            } else {
+              if (id > 0){
+                bool isChanged = FirebaseListener::data->getDevice(id)->updatedDeviceState(stateHolder);
+                if (isChanged){
+                  notifyDataChangedToQueue(id);
+                }
+              }
+              id += 1;
+            }
+        } else {
+          // detect if value.value string is an integer or true/false boolean
+          if (atoi(value.value.c_str()) != 0)
+          {
+              Serial_Printf((const char *)FPSTR("item key %d is an integer, value %d\n"), i, atoi(value.value.c_str()));
+              stateHolder.intValue = atoi(value.value.c_str());
+          }
+          else if (value.value == "true" || value.value == "false")
+          {
+              Serial_Printf((const char *)FPSTR("item key %d is a boolean, value %s\n"), i, value.value == "true" ? "true" : "false");
+              stateHolder.boolValue = value.value == "true" ? true : false;
+          }
+        }
+
+        
 
         // DataItem item = FirebaseListener::dataParsingCallback(i, value.value.c_str());
         

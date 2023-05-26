@@ -145,8 +145,8 @@ void UartManager::setupUartFactory(DevicesManager* dataHolder , DataChangedCallb
     UartManager::stopSendingDataThroughUart = stopSendingDataThroughUart;
     this->initUart(dataHolder);
     this->registerDataChangedCallback(dataChangedCallback);
-    this->registerTimerToGetPowerConsumptionAndTemp();
-    this->notifiyMicroControllerToGetPowerConsump();
+    // this->registerTimerToGetPowerConsumptionAndTemp();
+    // this->notifiyMicroControllerToGetPowerConsump();
 }
 
 void UartManager::initUart(DevicesManager* dataHolder){
