@@ -5,7 +5,7 @@
 #include "devicesTypes.h"
 
 
-#define DATA_FIELDS_COUNT 9
+#define DATA_FIELDS_COUNT 14
 
 class Device{
     uint8_t key;

@@ -4,6 +4,7 @@
 #include "powerConsumption.h"
 #include "peopleCounter.h"
 #include "rgbLight.h"
+#include "acCommands.h"
 
 Device* DevicesManager::getDevice(uint8_t key){
     return devices[key];
@@ -25,6 +26,7 @@ DevicesManager::DevicesManager(){
     devices[rgblStateId] = new RgbLight(rgblStateId);
     devices[gasLeakAlarmId] = new Switch(gasLeakAlarmId);
     devices[numOfPeopleId] = new PeopleCounter(numOfPeopleId);
+    devices[acCommands] = new AcCommands(acCommands);
     devices[passwordWrongAlarmId] = new Switch(passwordWrongAlarmId);
     devices[powerConsumptionId] = new PowerConsumption(powerConsumptionId);
 }
