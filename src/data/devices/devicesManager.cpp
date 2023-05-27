@@ -19,15 +19,15 @@ DevicesManager::~DevicesManager(){
 
 DevicesManager::DevicesManager(){
 
-    devices[doorStateId] = new Switch(doorStateId);
+    devices[doorStateId] = new Switch(doorStateId , false , false);
     devices[tempId] = new TempratureSensor(tempId);
     devices[led1Id] = new Switch(led1Id);
     devices[electriId] = new Switch(electriId);
     devices[rgblStateId] = new RgbLight(rgblStateId);
-    devices[gasLeakAlarmId] = new Switch(gasLeakAlarmId);
+    devices[gasLeakAlarmId] = new Switch(gasLeakAlarmId , false , false);
     devices[numOfPeopleId] = new PeopleCounter(numOfPeopleId);
     devices[acCommands] = new AcCommands(acCommands);
-    devices[passwordWrongAlarmId] = new Switch(passwordWrongAlarmId);
+    devices[passwordWrongAlarmId] = new Switch(passwordWrongAlarmId , false , false);
     devices[powerConsumptionId] = new PowerConsumption(powerConsumptionId);
 }
 

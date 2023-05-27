@@ -1,11 +1,11 @@
 #include "acCommands.h"
 #include <string.h>
 
-AcCommands::AcCommands(uint8_t key) : Device(key , AC){
+AcCommands::AcCommands(uint8_t key) : Device(key , AC , false){
     isOn = false;
     lowerTempEventCount = 0;
     riseTempEventCount = 0;
-    currentCommand = AC_OFF;
+    currentCommand = AC_NONE;
 }
 
 bool AcCommands::updatedDeviceState(DeviceStateHolder stateHolder){

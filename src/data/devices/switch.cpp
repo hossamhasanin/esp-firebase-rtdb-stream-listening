@@ -1,6 +1,6 @@
 #include "switch.h"
 
-Switch::Switch(uint8_t key) : Device(key , SWITCH){
+Switch::Switch(uint8_t key , bool canSendStateToUart , bool canUpdateStateToUart) : Device(key , SWITCH , canSendStateToUart , canUpdateStateToUart){
     state = false;
 }
 

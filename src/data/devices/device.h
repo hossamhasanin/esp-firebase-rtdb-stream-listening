@@ -10,12 +10,16 @@
 class Device{
     uint8_t key;
     DevicesTypes type;
+    bool canSendStateToUart;
+    bool canUpdateStateToUart;
 
     public:
 
-        Device(uint8_t key , DevicesTypes type){
+        Device(uint8_t key , DevicesTypes type , bool canSendStateToUart = true , bool canUpdateStateToUart = true){
             this->key = key;
             this->type = type;
+            this->canSendStateToUart = canSendStateToUart;
+            this->canUpdateStateToUart = canUpdateStateToUart;
         }
         
         uint8_t getKey(){
@@ -24,6 +28,14 @@ class Device{
 
         DevicesTypes getType(){
             return type;
+        }
+
+        bool getCanSendStateToUart(){
+            return canSendStateToUart;
+        }
+
+        bool getCanUpdateStateToUart(){
+            return canUpdateStateToUart;
         }
 
         virtual bool updatedDeviceState(DeviceStateHolder stateHolder);

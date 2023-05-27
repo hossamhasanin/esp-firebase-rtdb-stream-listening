@@ -1,6 +1,6 @@
 #include "tempratureSensor.h"
 
-TempratureSensor::TempratureSensor(uint8_t key) : Device(key , TEMPRATURE_SENSOR){
+TempratureSensor::TempratureSensor(uint8_t key) : Device(key , TEMPRATURE_SENSOR , false , false){
     temprature = 0;
 }
 

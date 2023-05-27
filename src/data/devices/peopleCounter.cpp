@@ -1,6 +1,6 @@
 #include "peopleCounter.h"
 
-PeopleCounter::PeopleCounter(uint8_t key ) : Device(key , PEOPLE_COUNTER){
+PeopleCounter::PeopleCounter(uint8_t key ) : Device(key , PEOPLE_COUNTER , false , false){
     peopleCount = 0;
 }
 

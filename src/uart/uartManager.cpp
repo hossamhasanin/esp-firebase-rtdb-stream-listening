@@ -312,20 +312,32 @@ void UartManager::updateRgbLight(RgbLight* rgb){
 void UartManager::updateAc(AcCommands* ac){
     Serial.println((const char *)FPSTR("Sending ac through uart"));
     if (ac->getCurrentCommand() == AC_ON) {
-        sendData(ac->getKey() , 'o');
+        uart_write_bytes(EX_UART_NUM, "o", 1); 
+        delay(40);
+        char data_str = '1';
+        uart_write_bytes(EX_UART_NUM, &data_str, 1);
         ac->resetCommands();
     } else if (ac->getCurrentCommand() == AC_OFF) {
-        sendData(ac->getKey() , 'f');
+        uart_write_bytes(EX_UART_NUM, "f", 1); 
+        delay(40);
+        char data_str = '1';
+        uart_write_bytes(EX_UART_NUM, &data_str, 1);
         ac->resetCommands();
     } else if (ac->getCurrentCommand() == AC_LOWER_TEMP) {
-        sendData(ac->getKey() , 'l');
+        uart_write_bytes(EX_UART_NUM, "l", 1); 
+        delay(40);
         uint8_t d = ac->getLowerTempEventCount();
-        uart_write_bytes(EX_UART_NUM, &d, 1);
+        char data_str;
+        sprintf(&data_str, "%d", d);
+        uart_write_bytes(EX_UART_NUM, &data_str, 1);
         ac->resetCommands();
     } else if (ac->getCurrentCommand() == AC_RISE_TEMP) {
-        sendData(ac->getKey() , 'r');
+        uart_write_bytes(EX_UART_NUM, "r", 1); 
+        delay(40);
         uint8_t d = ac->getRiseTempEventCount();
-        uart_write_bytes(EX_UART_NUM, &d, 1);
+        char data_str;
+        sprintf(&data_str, "%d", d);
+        uart_write_bytes(EX_UART_NUM, &data_str, 1);
         ac->resetCommands();
     }
 }

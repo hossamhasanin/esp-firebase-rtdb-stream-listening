@@ -1,6 +1,6 @@
 #include "powerConsumption.h"
 
-PowerConsumption::PowerConsumption(uint8_t key) : Device(key , POWER_CONSUMPTION){
+PowerConsumption::PowerConsumption(uint8_t key) : Device(key , POWER_CONSUMPTION , false , false){
     powerConsumption = 0;
 }
 

@@ -113,15 +113,17 @@ void FirebaseListener::streamCallback(FirebaseStream data)
     for (size_t i = 0; i < len; i++)
     {
         value = arr->valueAt(i);
-        Serial_Printf((const char *)FPSTR("%d, Type: %s, Value: %s\n"), i, value.type == FirebaseJson::JSON_OBJECT ? (const char *)FPSTR("object") : (const char *)FPSTR("array"), value.value.c_str());
+        // Serial_Printf((const char *)FPSTR("%d, Type: %s, Value: %s\n"), i, value.type == FirebaseJson::JSON_OBJECT ? (const char *)FPSTR("object") : (const char *)FPSTR("array"), value.value.c_str());
 
         if (value.type == FirebaseJson::JSON_ARRAY){
             if (value.value == "null"){
               continue;
             } else {
               if (id > 0){
-                bool isChanged = FirebaseListener::data->getDevice(id)->updatedDeviceState(stateHolder);
-                if (isChanged){
+                Device *device = FirebaseListener::data->getDevice(id);
+                bool isChanged = device->updatedDeviceState(stateHolder);
+                if (isChanged && device->getCanSendStateToUart()){
+                  Serial.printf("firebase changed Device %d is changed\n", id);
                   notifyDataChangedToQueue(id);
                 }
               }
@@ -167,9 +169,11 @@ void FirebaseListener::streamCallback(FirebaseStream data)
     DeviceStateHolder stateHolder;
     stateHolder.fieldName = field.c_str();
     stateHolder.intValue = data.intData();
-    bool isChanged = FirebaseListener::data->getDevice(key)->updatedDeviceState(stateHolder);
     Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.intData());
-    if (isChanged){
+    Device *device = FirebaseListener::data->getDevice(key);
+    bool isChanged = device->updatedDeviceState(stateHolder);
+    if (isChanged && device->getCanUpdateStateToUart()){
+      Serial.printf("firebase changed Device %d is changed\n", key);
       notifyDataChangedToQueue(key);
     }
   } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_double) {
@@ -182,9 +186,11 @@ void FirebaseListener::streamCallback(FirebaseStream data)
     DeviceStateHolder stateHolder;
     stateHolder.fieldName = field.c_str();
     stateHolder.doubleValue = data.doubleData();
-    bool isChanged = FirebaseListener::data->getDevice(key)->updatedDeviceState(stateHolder);
     Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.intData());
-    if (isChanged){
+    Device *device = FirebaseListener::data->getDevice(key);
+    bool isChanged = device->updatedDeviceState(stateHolder);
+    if (isChanged && device->getCanUpdateStateToUart()){
+      Serial.printf("firebase changed Device %d is changed\n", key);
       notifyDataChangedToQueue(key);
     }
   } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_float) {
@@ -197,9 +203,11 @@ void FirebaseListener::streamCallback(FirebaseStream data)
     DeviceStateHolder stateHolder;
     stateHolder.fieldName = field.c_str();
     stateHolder.doubleValue = data.floatData();
-    bool isChanged = FirebaseListener::data->getDevice(key)->updatedDeviceState(stateHolder);
     Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.intData());
-    if (isChanged){
+    Device *device = FirebaseListener::data->getDevice(key);
+    bool isChanged = device->updatedDeviceState(stateHolder);
+    if (isChanged && device->getCanUpdateStateToUart()){
+      Serial.printf("firebase changed Device %d is changed\n", key);
       notifyDataChangedToQueue(key);
     }
   } else if (data.dataTypeEnum() == fb_esp_rtdb_data_type_boolean) {
@@ -212,9 +220,11 @@ void FirebaseListener::streamCallback(FirebaseStream data)
     DeviceStateHolder stateHolder;
     stateHolder.fieldName = field.c_str();
     stateHolder.boolValue = data.boolData();
-    bool isChanged = FirebaseListener::data->getDevice(key)->updatedDeviceState(stateHolder);
     Serial_Printf((const char *)FPSTR("item key %d, value %d\n"), key, data.intData());
-    if (isChanged){
+    Device *device = FirebaseListener::data->getDevice(key);
+    bool isChanged = device->updatedDeviceState(stateHolder);
+    if (isChanged && device->getCanUpdateStateToUart()){
+      Serial.printf("firebase changed Device %d is changed\n", key);
       notifyDataChangedToQueue(key);
     }
   } else {
